@@ -5,5 +5,13 @@
   "author": {
     "name": "JD"
   },
-  "keywords": ["fhir", "hl7", "jira", "ig-publisher", "github"]
+  "keywords": ["fhir", "hl7", "jira", "ig-publisher", "github"],
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/check-update.py"
+      }
+    ]
+  }
 }
