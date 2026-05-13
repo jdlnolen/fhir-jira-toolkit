@@ -1,0 +1,17 @@
+{
+  "name": "fhir-jira-toolkit",
+  "owner": {
+    "name": "JD"
+  },
+  "metadata": {
+    "description": "End-to-end tooling for resolving HL7 FHIR JIRA tickets across the FHIR core specification, the Extensions Pack, and FHIR Implementation Guides.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "fhir-jira",
+      "source": "./plugins/fhir-jira",
+      "description": "Fetch a FHIR JIRA ticket, resolve its target repo, branch, edit the spec, run the IG Publisher, validate the QA delta, commit, push, open a PR, and watch CI. Batches that span multiple specs produce one PR per repo."
+    }
+  ]
+}

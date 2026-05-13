@@ -1,0 +1,67 @@
+{
+  "_comment": "Default repository map for fhir-jira-toolkit. Override at ~/.config/fhir-jira-toolkit/repo-map.json — that file is merged on top of this one (matching by GitHub slug). See references/repo-map.md for the full schema.",
+  "version": 1,
+  "default_clone_root": "~/dev/hl7",
+  "specifications": [
+    {
+      "names": ["FHIR Core", "FHIR Specification"],
+      "github": "HL7/fhir",
+      "default_branch": "master",
+      "publisher": "./gradlew publish",
+      "qa_path": "output/qa.json",
+      "build_dirs": ["output", "temp", "build", ".gradle"],
+      "url_patterns": [
+        "^https?://(www\\.)?hl7\\.org/fhir/(?!us/|uv/|cda/|extensions/)",
+        "^https?://build\\.fhir\\.org/(?!ig/)"
+      ]
+    },
+    {
+      "names": ["Extensions Pack", "FHIR Extensions Pack", "Extensions"],
+      "github": "HL7/fhir-extensions",
+      "default_branch": "main",
+      "publisher": "./_updatePublisher.sh && ./_genonce.sh",
+      "qa_path": "output/qa.json",
+      "build_dirs": ["output", "temp", "input-cache"],
+      "url_patterns": [
+        "hl7\\.org/fhir/extensions/",
+        "build\\.fhir\\.org/ig/HL7/fhir-extensions"
+      ]
+    },
+    {
+      "names": ["US Core"],
+      "github": "HL7/US-Core",
+      "default_branch": "master",
+      "publisher": "./_updatePublisher.sh && ./_genonce.sh",
+      "qa_path": "output/qa.json",
+      "build_dirs": ["output", "temp", "input-cache"],
+      "url_patterns": [
+        "hl7\\.org/fhir/us/core/",
+        "build\\.fhir\\.org/ig/HL7/US-Core"
+      ]
+    },
+    {
+      "names": ["IPS", "International Patient Summary"],
+      "github": "HL7/fhir-ips",
+      "default_branch": "master",
+      "publisher": "./_updatePublisher.sh && ./_genonce.sh",
+      "qa_path": "output/qa.json",
+      "build_dirs": ["output", "temp", "input-cache"],
+      "url_patterns": [
+        "hl7\\.org/fhir/uv/ips/",
+        "build\\.fhir\\.org/ig/HL7/fhir-ips"
+      ]
+    },
+    {
+      "names": ["Genomics Reporting", "FHIR Genomics Reporting"],
+      "github": "HL7/genomics-reporting",
+      "default_branch": "master",
+      "publisher": "./_updatePublisher.sh && ./_genonce.sh",
+      "qa_path": "output/qa.json",
+      "build_dirs": ["output", "temp", "input-cache"],
+      "url_patterns": [
+        "hl7\\.org/fhir/uv/genomics-reporting/",
+        "build\\.fhir\\.org/ig/HL7/genomics-reporting"
+      ]
+    }
+  ]
+}

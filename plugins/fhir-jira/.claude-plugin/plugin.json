@@ -1,0 +1,9 @@
+{
+  "name": "fhir-jira",
+  "version": "0.1.0",
+  "description": "End-to-end workflow for resolving HL7 FHIR JIRA tickets: fetch ticket, branch, edit spec, run IG Publisher, validate QA delta, commit, push, open PR, monitor CI.",
+  "author": {
+    "name": "JD"
+  },
+  "keywords": ["fhir", "hl7", "jira", "ig-publisher", "github"]
+}
