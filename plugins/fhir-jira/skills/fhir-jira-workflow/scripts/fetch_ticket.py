@@ -55,6 +55,8 @@ from typing import Any
 JIRA_BASE = "https://jira.hl7.org"
 DEFAULT_CACHE_DIR = Path(".jira-cache")
 USER_AGENT = "Mozilla/5.0 (compatible; fhir-jira-toolkit/0.2)"
+_TICKET_KEY_RE = re.compile(r"^[A-Z]+-\d+$")
+_FILTER_ID_RE = re.compile(r"^\d+$")
 
 
 def _http_get(url: str, timeout: int = 30) -> str:
@@ -199,7 +201,8 @@ class _IssuePageExtractor(HTMLParser):
             value = " ".join(s.strip() for s in buf if s.strip())
             if self._pending_label and value:
                 self.fields[self._pending_label] = value
-            self._pending_label = None
+                self._pending_label = None
+            # If value was empty, keep _pending_label alive for the next value element
             self._value = None
 
         if self._desc is not None and self._desc[0] == self._depth:
@@ -283,6 +286,8 @@ def parse_issue_html(key: str, html_text: str) -> dict[str, Any]:
 
 
 def fetch_issue(key: str, dump_html_dir: Path | None = None) -> dict[str, Any]:
+    if not _TICKET_KEY_RE.fullmatch(key):
+        raise ValueError(f"Invalid ticket key format: {key!r} (expected PROJECT-NUMBER, e.g. FHIR-12345)")
     url = f"{JIRA_BASE}/browse/{urllib.parse.quote(key)}"
     body = _http_get(url)
     if dump_html_dir is not None:
@@ -305,6 +310,8 @@ def fetch_filter_keys(filter_id: str) -> list[str]:
 
     For public filters this works without authentication.
     """
+    if not _FILTER_ID_RE.fullmatch(filter_id):
+        raise ValueError(f"Invalid filter ID format: {filter_id!r} (expected numeric ID, e.g. 24101)")
     url = (
         f"{JIRA_BASE}/sr/jira.issueviews:searchrequest-xml/"
         f"{urllib.parse.quote(filter_id)}/SearchRequest-{urllib.parse.quote(filter_id)}.xml"
@@ -378,7 +385,7 @@ def main(argv: list[str]) -> int:
                 file=sys.stderr,
             )
             return 1
-        except Exception as e:
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
             print(f"Error fetching filter {args.filter}: {e}", file=sys.stderr)
             return 1
         if not args.quiet:
@@ -404,7 +411,7 @@ def main(argv: list[str]) -> int:
         except urllib.error.HTTPError as e:
             print(f"Error fetching {key}: HTTP {e.code} ({e.reason})", file=sys.stderr)
             rc = 1
-        except Exception as e:
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
             print(f"Error fetching {key}: {e}", file=sys.stderr)
             rc = 1
     return rc

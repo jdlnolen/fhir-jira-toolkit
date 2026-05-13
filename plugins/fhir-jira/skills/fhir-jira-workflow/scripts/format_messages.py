@@ -44,6 +44,16 @@ SUBJECT_LIMIT = 72
 BODY_WRAP = 72
 
 
+def _escape_backticks(s: str) -> str:
+    """Escape backticks in a string destined for inline code spans."""
+    return s.replace("`", "\\`")
+
+
+def _escape_md_link_text(s: str) -> str:
+    """Escape characters that would break markdown link syntax [text](url)."""
+    return s.replace("]", "\\]").replace(")", "\\)")
+
+
 def load_ticket(path: Path) -> dict[str, Any]:
     """Load a cached ticket (fetch_ticket.py output format)."""
     raw = json.loads(path.read_text())
@@ -92,8 +102,12 @@ def wrap_body(text: str, width: int = BODY_WRAP) -> str:
     paragraphs = text.split("\n\n")
     out = []
     for p in paragraphs:
-        # Don't reflow lines that look like blockquotes or lists
-        if any(p.lstrip().startswith(prefix) for prefix in ("> ", "- ", "* ", "  ")):
+        # Don't reflow paragraphs where any line looks like a blockquote or list
+        if any(
+            line.lstrip().startswith(prefix)
+            for line in p.splitlines()
+            for prefix in ("> ", "- ", "* ", "  ")
+        ):
             out.append(p)
         else:
             out.append("\n".join(textwrap.wrap(p, width=width) or [""]))
@@ -122,7 +136,7 @@ def format_pr_single(
 ) -> str:
     parts: list[str] = []
     parts.append(
-        f"Resolves [{ticket['key']}]({ticket['url']}): {ticket['summary']}"
+        f"Resolves [{ticket['key']}]({ticket['url']}): {_escape_md_link_text(ticket['summary'])}"
     )
     parts.append("")
     parts.append("## What changed")
@@ -132,7 +146,7 @@ def format_pr_single(
     if files:
         parts.append("## Files touched")
         for f in files:
-            parts.append(f"- `{f}`")
+            parts.append(f"- `{_escape_backticks(f)}`")
         parts.append("")
 
     if qa_delta:
@@ -151,7 +165,7 @@ def format_pr_batch(
     parts.append("")
     parts.append("## Tickets")
     for t in tickets:
-        parts.append(f"- [{t['key']}]({t['url']}): {t['summary']}")
+        parts.append(f"- [{t['key']}]({t['url']}): {_escape_md_link_text(t['summary'])}")
     parts.append("")
 
     for t in tickets:
@@ -163,7 +177,7 @@ def format_pr_batch(
         parts.append("")
         files = entry.get("files") or []
         if files:
-            parts.append("**Files:** " + ", ".join(f"`{f}`" for f in files))
+            parts.append("**Files:** " + ", ".join(f"`{_escape_backticks(f)}`" for f in files))
             parts.append("")
         parts.append(f"[Ticket]({t['url']})")
         parts.append("")

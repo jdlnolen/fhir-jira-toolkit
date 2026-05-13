@@ -38,6 +38,7 @@ from typing import Any
 
 SHIPPED_MAP_REL = "skills/fhir-jira-workflow/repo-map.json"
 USER_MAP = Path.home() / ".config" / "fhir-jira-toolkit" / "repo-map.json"
+# Intentionally CWD-relative: project-local override for the repo the user is working in
 PROJECT_MAP = Path("repo-map.local.json")
 
 
@@ -72,7 +73,7 @@ def load_map() -> dict[str, Any]:
         if local.exists():
             base = json.loads(local.read_text())
         else:
-            raise SystemExit(f"Could not locate repo-map.json (looked at {shipped})")
+            raise FileNotFoundError(f"Could not locate repo-map.json (looked at {shipped})")
 
     for override_path in (USER_MAP, PROJECT_MAP):
         if override_path.exists():
@@ -101,14 +102,20 @@ def _merge_maps(base: dict[str, Any], over: dict[str, Any]) -> dict[str, Any]:
         slug = spec.get("github", "")
         if not slug:
             continue
-        existing = by_slug.get(slug, {})
-        existing.update(spec)
+        existing = dict(by_slug.get(slug, {}))
+        for k, v in spec.items():
+            if k in ("names", "url_patterns") and k in existing and isinstance(v, list):
+                # Extend list fields rather than replacing them
+                seen = set(existing[k])
+                existing[k] = existing[k] + [x for x in v if x not in seen]
+            else:
+                existing[k] = v
         by_slug[slug] = existing
     merged["specifications"] = list(by_slug.values())
     return merged
 
 
-def _expand_path(s: str | None, default_clone_root: str | None) -> Path | None:
+def _expand_path(s: str | None) -> Path | None:
     if not s:
         return None
     s = os.path.expandvars(os.path.expanduser(s))
@@ -117,10 +124,10 @@ def _expand_path(s: str | None, default_clone_root: str | None) -> Path | None:
 
 def resolve_local_path(spec: dict[str, Any], default_clone_root: str | None) -> Path:
     """Determine the local clone path for a spec entry."""
-    explicit = _expand_path(spec.get("local_path"), default_clone_root)
+    explicit = _expand_path(spec.get("local_path"))
     if explicit:
         return explicit
-    root = _expand_path(default_clone_root, None) or Path.home() / "dev" / "hl7"
+    root = _expand_path(default_clone_root) or Path.home() / "dev" / "hl7"
     repo_name = spec["github"].split("/")[-1]
     return root / repo_name
 
@@ -226,10 +233,21 @@ def resolve_for_ticket(
             )
 
     urls = _candidate_urls(ticket)
+    url_matches: list[tuple[dict[str, Any], str]] = []
     for spec in specs:
         for pattern in spec.get("url_patterns", []) or []:
             if any(re.search(pattern, u) for u in urls):
-                return spec, f"matched URL pattern {pattern!r}"
+                url_matches.append((spec, pattern))
+                break  # one match per spec is enough
+    if len(url_matches) == 1:
+        spec, pattern = url_matches[0]
+        return spec, f"matched URL pattern {pattern!r}"
+    if len(url_matches) > 1:
+        slugs = ", ".join(m[0].get("github", "?") for m in url_matches)
+        return None, (
+            f"ambiguous URL pattern match — multiple specs matched: {slugs}. "
+            f"Add a Specification field or refine url_patterns in repo-map.json."
+        )
 
     return None, (
         "no Specification field match and no URL pattern match. "
@@ -292,7 +310,11 @@ def main(argv: list[str]) -> int:
         groups: dict[str, list[str]] = {}
         unresolved: list[dict[str, str]] = []
         for p in paths:
-            ticket = json.loads(Path(p).read_text())
+            try:
+                ticket = json.loads(Path(p).read_text())
+            except (OSError, json.JSONDecodeError) as e:
+                unresolved.append({"key": p, "reason": f"failed to read ticket file: {e}"})
+                continue
             spec, reason = resolve_for_ticket(ticket, repo_map)
             key = ticket.get("key", p)
             if spec is None:

@@ -28,8 +28,18 @@ from typing import Any
 
 def load_qa(path: Path) -> dict[str, Any]:
     if not path.exists():
-        raise SystemExit(f"qa file not found: {path}")
+        raise FileNotFoundError(f"qa file not found: {path}")
     return json.loads(path.read_text())
+
+
+def _to_int(v: Any, default: int = 0) -> int:
+    """Safely coerce a value to int, returning default on failure."""
+    if v is None:
+        return default
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return default
 
 
 def counts(qa: dict[str, Any]) -> dict[str, int]:
@@ -45,34 +55,36 @@ def counts(qa: dict[str, Any]) -> dict[str, int]:
 
     # Newer top-level keys
     if "errs" in qa:
-        out["errors"] = int(qa.get("errs", 0))
-        out["warnings"] = int(qa.get("warnings", 0))
-        out["info"] = int(qa.get("hints", qa.get("info", 0)))
-        out["broken_links"] = int(qa.get("links", qa.get("brokenlinks", 0)))
+        out["errors"] = _to_int(qa.get("errs"))
+        out["warnings"] = _to_int(qa.get("warnings"))
+        out["info"] = _to_int(qa.get("hints", qa.get("info", 0)))
+        out["broken_links"] = _to_int(qa.get("links", qa.get("brokenlinks", 0)))
         return out
 
     # Older top-level keys
     if "errors" in qa or "warnings" in qa:
-        out["errors"] = int(qa.get("errors", 0))
-        out["warnings"] = int(qa.get("warnings", 0))
-        out["info"] = int(qa.get("info", 0))
-        out["broken_links"] = int(qa.get("brokenlinks", qa.get("links", 0)))
+        out["errors"] = _to_int(qa.get("errors"))
+        out["warnings"] = _to_int(qa.get("warnings"))
+        out["info"] = _to_int(qa.get("info"))
+        out["broken_links"] = _to_int(qa.get("brokenlinks", qa.get("links", 0)))
         return out
 
     # Summary subobject
     summary = qa.get("summary")
     if isinstance(summary, dict):
-        out["errors"] = int(summary.get("errors", summary.get("errs", 0)))
-        out["warnings"] = int(summary.get("warnings", 0))
-        out["info"] = int(summary.get("info", summary.get("hints", 0)))
-        out["broken_links"] = int(
+        out["errors"] = _to_int(summary.get("errors", summary.get("errs", 0)))
+        out["warnings"] = _to_int(summary.get("warnings"))
+        out["info"] = _to_int(summary.get("info", summary.get("hints", 0)))
+        out["broken_links"] = _to_int(
             summary.get("brokenlinks", summary.get("links", 0))
         )
         return out
 
     # Fallback: walk per-file messages
+    found_any = False
     for entry in qa.get("files", []) or []:
         for msg in entry.get("messages", []) or []:
+            found_any = True
             level = (msg.get("level") or msg.get("severity") or "").lower()
             if level in ("error", "fatal"):
                 out["errors"] += 1
@@ -80,6 +92,14 @@ def counts(qa: dict[str, Any]) -> dict[str, int]:
                 out["warnings"] += 1
             elif level in ("information", "info", "hint"):
                 out["info"] += 1
+            elif level in ("broken-link", "brokenlink"):
+                out["broken_links"] += 1
+    if not found_any and all(v == 0 for v in out.values()):
+        print(
+            "Warning: qa.json schema not recognized — no counts extracted. "
+            "Regression check may report false-green.",
+            file=sys.stderr,
+        )
     return out
 
 
