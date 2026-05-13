@@ -57,6 +57,14 @@ and tell the user how to add it** (point them at `references/repo-map.md`).
 
 ## Single-ticket procedure
 
+### 0. Check for prior learnings (if Compound Engineering is installed)
+
+Before fetching the ticket, if the `ce-learnings-researcher` agent is
+available, invoke it with a query scoped to this work: the target repo
+(once known), the ticket type, and the FHIR JIRA workflow. Read whatever
+learnings come back and apply them. If nothing is installed or no
+learnings match, proceed normally.
+
 ### 1. Fetch the ticket (cache outside any repo first)
 
 ```bash
@@ -293,6 +301,14 @@ gh pr checks "$PR_NUMBER" --watch
 
 If CI fails: `gh run view --log-failed`, summarize for the user, ask
 whether to attempt a fix or hand back. Never silently push fixes.
+
+### 15. Recommend compounding any new learnings
+
+If anything in this session was non-obvious — a JIRA field that mapped
+strangely, a publisher quirk, a repo-map.json update that was needed —
+surface a short bullet list to the user and recommend they run
+`/ce-compound` to capture it. Don't run `/ce-compound` automatically;
+let the user decide what's worth keeping.
 
 ## Batch procedure (may span multiple repos)
 
