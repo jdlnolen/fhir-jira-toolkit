@@ -129,13 +129,14 @@ would miss.
 
 ### Prerequisites
 
-Install the Playwright plugin in Claude Code:
+Install the Playwright plugin in Claude Code (it's a separate plugin from
+the official marketplace — `fhir-jira` does not install it automatically):
 
 ```
-/install-plugin playwright@claude-plugins-official
+/plugin install playwright@claude-plugins-official
 ```
 
-No other setup is needed — the plugin ships from the official marketplace.
+No other setup is needed.
 
 If the Playwright plugin is **not installed**, the HTML verification steps
 are skipped automatically and the rest of the workflow proceeds as usual.
