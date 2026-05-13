@@ -49,19 +49,21 @@ for the schema and how to add IGs.
 
 ## Installation
 
-See `INSTALL.md` for the full step-by-step. Quick version (assumes you
-already have `git`, `gh`, `python3`, and the IG Publisher set up):
+### From GitHub (recommended)
+
+In Claude Code:
+
+```
+/plugin marketplace add <owner>/fhir-jira-toolkit
+/plugin install fhir-jira@fhir-jira-toolkit
+```
+
+Replace `<owner>` with the GitHub org or username hosting the repo.
+
+Optionally override the default clone root if your HL7 repos aren't at
+`~/dev/hl7/`:
 
 ```bash
-# 1. Unpack the marketplace somewhere stable
-mkdir -p ~/.claude/marketplaces
-unzip fhir-jira-toolkit.zip -d ~/.claude/marketplaces/
-
-# 2. In Claude Code, register the local marketplace and install the plugin
-/plugin marketplace add ~/.claude/marketplaces/fhir-jira-toolkit
-/plugin install fhir-jira@fhir-jira-toolkit
-
-# 3. (Optional) override the default clone root if your HL7 repos aren't at ~/dev/hl7/
 mkdir -p ~/.config/fhir-jira-toolkit
 echo '{"version": 1, "default_clone_root": "/your/path"}' \
   > ~/.config/fhir-jira-toolkit/repo-map.json
@@ -72,6 +74,24 @@ Then in a chat:
 ```
 /fhir-jira FHIR-12345
 ```
+
+### From a local directory
+
+If you prefer a local install (or are developing the plugin):
+
+```bash
+git clone https://github.com/<owner>/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
+```
+
+Then in Claude Code:
+
+```
+/plugin marketplace add ~/.claude/marketplaces/fhir-jira-toolkit
+/plugin install fhir-jira@fhir-jira-toolkit
+```
+
+See `INSTALL.md` for the full step-by-step including prerequisites
+(`git`, `gh`, `python3`, IG Publisher) and per-repo QA baseline setup.
 
 ## How it works
 
@@ -122,11 +142,7 @@ Edit `~/.config/fhir-jira-toolkit/repo-map.json`:
 }
 ```
 
-Verify with:
-
-```bash
-~/.claude/marketplaces/fhir-jira-toolkit/plugins/fhir-jira/skills/fhir-jira-workflow/scripts/resolve_repo.py --list
-```
+Verify by asking Claude in a chat: `Run resolve_repo.py --list`
 
 Full schema: `plugins/fhir-jira/skills/fhir-jira-workflow/references/repo-map.md`.
 

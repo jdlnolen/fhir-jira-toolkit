@@ -134,40 +134,18 @@ You only need clones for repos you'll actually work in.
 
 ---
 
-## Step 1 — Unpack the marketplace
+## Step 1 — Add the marketplace
 
-Pick a stable location. `~/.claude/marketplaces/` is a sensible convention:
-
-```bash
-mkdir -p ~/.claude/marketplaces
-cd ~/.claude/marketplaces
-unzip ~/Downloads/fhir-jira-toolkit.zip
-# or: tar -xzf ~/Downloads/fhir-jira-toolkit.tar.gz
-
-# Verify
-ls ~/.claude/marketplaces/fhir-jira-toolkit/.claude-plugin/marketplace.json
-ls ~/.claude/marketplaces/fhir-jira-toolkit/plugins/fhir-jira/.claude-plugin/plugin.json
-```
-
-Both files must exist at those exact paths. Claude Code looks for
-`marketplace.json` to identify the marketplace and `plugin.json` to
-identify each plugin within it.
-
-Make the helper scripts executable (zip can lose the bit on some platforms):
-
-```bash
-chmod +x ~/.claude/marketplaces/fhir-jira-toolkit/plugins/fhir-jira/skills/fhir-jira-workflow/scripts/*.py
-```
-
----
-
-## Step 2 — Register the marketplace with Claude Code
+### Option A — From GitHub (recommended)
 
 Open Claude Code. In any conversation, run:
 
 ```
-/plugin marketplace add ~/.claude/marketplaces/fhir-jira-toolkit
+/plugin marketplace add <owner>/fhir-jira-toolkit
 ```
+
+Replace `<owner>` with the GitHub org or username hosting the repo
+(e.g., `jdln/fhir-jira-toolkit`).
 
 Expected output:
 
@@ -181,15 +159,29 @@ Available plugins:
 Run /plugin install <name> to install
 ```
 
-If you instead get:
+### Option B — From a local clone
+
+If you prefer a local install, or GitHub is unreachable:
+
+```bash
+git clone https://github.com/<owner>/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
+```
+
+Then in Claude Code:
+
+```
+/plugin marketplace add ~/.claude/marketplaces/fhir-jira-toolkit
+```
+
+### Troubleshooting
 
 - **`unknown command`** — your Claude Code is too old. Update with
   `npm install -g @anthropic-ai/claude-code` (or your install method)
   and restart your terminal.
-- **`marketplace.json not found`** — path is wrong, or the unzip went to
-  an unexpected location. Re-check the path in step 1.
-- **`invalid marketplace.json`** — file got corrupted during transfer.
-  Re-unzip.
+- **`marketplace.json not found`** — the path or repo is wrong. Check
+  that `.claude-plugin/marketplace.json` exists at the root.
+- **`invalid marketplace.json`** — the file is malformed. Check for
+  syntax errors.
 
 To confirm:
 
@@ -265,8 +257,16 @@ If `~/dev/hl7/` works for you, skip this step.
 
 ## Step 6 — Verify repo resolution points where you think
 
+Ask Claude to verify in a chat:
+
+```
+Run resolve_repo.py --list and show me the results
+```
+
+Or run the script directly (if you have a local clone):
+
 ```bash
-~/.claude/marketplaces/fhir-jira-toolkit/plugins/fhir-jira/skills/fhir-jira-workflow/scripts/resolve_repo.py --list
+python3 ~/.claude/marketplaces/fhir-jira-toolkit/plugins/fhir-jira/skills/fhir-jira-workflow/scripts/resolve_repo.py --list
 ```
 
 You should see the five shipped specs with their resolved local paths.
@@ -351,19 +351,25 @@ If anything goes wrong, the script outputs live in `<repo>/.jira-cache/`
 
 ## Updating the plugin
 
-When you receive a new version of the bundle:
+If you installed from GitHub, Claude Code pulls the latest version
+automatically when the marketplace is refreshed. To force a refresh:
 
-```bash
-# Unpack over the existing marketplace dir
-cd ~/.claude/marketplaces
-rm -rf fhir-jira-toolkit
-unzip ~/Downloads/fhir-jira-toolkit.zip
-
-# In Claude Code:
+```
 /reload-plugins
 ```
 
-The marketplace registration persists across plugin updates.
+If you installed from a local clone, pull the latest and reload:
+
+```bash
+cd ~/.claude/marketplaces/fhir-jira-toolkit
+git pull
+```
+
+Then in Claude Code:
+
+```
+/reload-plugins
+```
 
 ## Uninstalling
 
@@ -372,10 +378,10 @@ The marketplace registration persists across plugin updates.
 /plugin marketplace remove fhir-jira-toolkit
 ```
 
-Optionally remove the unpacked files and config:
+Optionally remove the local clone and config:
 
 ```bash
-rm -rf ~/.claude/marketplaces/fhir-jira-toolkit
+rm -rf ~/.claude/marketplaces/fhir-jira-toolkit   # only if locally cloned
 rm -rf ~/.config/fhir-jira-toolkit
 ```
 
