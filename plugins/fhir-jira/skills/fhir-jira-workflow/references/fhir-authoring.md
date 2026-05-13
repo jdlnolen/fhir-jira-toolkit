@@ -389,6 +389,28 @@ After `_genonce.sh`, review the generated FHIR resources in
 FSH errors surface in terminal output; validation errors appear in
 `output/qa.html`.
 
+### Publisher-modified source files (FHIR Core)
+
+The FHIR Core Gradle build modifies source files beyond what you directly
+edited. These changes are legitimate — the publisher regenerates them in
+response to your edits — and **must be committed alongside your changes**.
+
+| File pattern | Why it changes |
+|---|---|
+| `source/*/...-fivews-mapping-exceptions.xml` | FiveWs mapping exceptions regenerated when resource definitions change |
+| `source/*/...-request-mapping-exceptions.xml` | Request workflow mapping exceptions regenerated |
+| `source/*/...-event-mapping-exceptions.xml` | Event workflow mapping exceptions regenerated |
+| `source/spelling/add.txt` | Spelling dictionary updated with new terms from your edits |
+
+After the publisher runs, always check `git status` for modified `source/`
+files. Stage them with your direct edits — they are part of the change, not
+build artifacts.
+
+**Do not confuse these with `build_dirs` output.** Files under `output/`,
+`temp/`, `build/`, and `.gradle/` are build artifacts and must not be
+committed. Files under `source/` modified by the publisher are source
+updates that belong in the commit.
+
 ---
 
 ## Published URL to local output path mapping

@@ -414,6 +414,20 @@ not appear. If your local repo doesn't already have these in
 `.gitignore`, add them to `.git/info/exclude` (local-only) rather than
 the committed `.gitignore` to keep your PR focused.
 
+**Important: the publisher modifies source files too.** Beyond your direct
+edits, the FHIR publisher (especially the Gradle build for FHIR Core)
+updates source files that must be included in the commit. Run
+`git status` after the publisher and look for modified `source/` files.
+Common publisher-modified files include:
+
+- `source/*/...-mapping-exceptions.xml` — mapping exception files
+  (fivews, request, event) regenerated when resource definitions change
+- `source/spelling/add.txt` — spelling dictionary updated with new terms
+  from your edits
+
+These are legitimate changes the publisher made in response to your edit.
+Stage them alongside your direct edits — they are part of the change.
+
 The `--repo` flag for `gh` is technically optional when CWD is the right
 repo, but pass it explicitly — it makes intent clear and avoids surprises
 in batch mode where you may have just `cd`'d in.
