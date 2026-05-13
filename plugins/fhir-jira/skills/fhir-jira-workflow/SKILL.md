@@ -237,8 +237,134 @@ If `.jira-cache/qa-baseline.json` doesn't exist yet for this repo, snapshot
 the publisher's output **on the unmodified default branch** before step 8
 on the very first run in a session. Each repo has its own baseline.
 
+While on the default branch with a fresh publisher build (the same moment
+you capture `qa-baseline.json`), also capture baseline HTML screenshots and
+accessibility snapshots for verification. See step 10b for how these are
+used. To capture baselines:
+
+1. Determine which page(s) to verify. Map the ticket's `Related URL` to a
+   local output path using the mapping in `references/fhir-authoring.md`
+   ("Published URL to local output path mapping"). If the ticket has no
+   `Related URL`, derive the page from the source files you plan to edit
+   (see the fallback table in the same reference). If no mapping is
+   possible, skip HTML verification for this ticket.
+
+2. Create the verification artifact directory:
+   ```bash
+   mkdir -p .jira-cache/html-verify/baseline
+   ```
+
+3. For each target page, use the Playwright MCP tools (if available) to
+   capture a baseline screenshot and accessibility snapshot. Use **absolute
+   paths** for the `filename` parameter — the Playwright MCP server's
+   output directory is not configured to the repo root:
+
+   ```
+   browser_navigate → file://<absolute-repo-path>/output/<page>.html
+   browser_take_screenshot → filename: <absolute-repo-path>/.jira-cache/html-verify/baseline/<page>.png
+                             type: png, fullPage: true
+   browser_snapshot → filename: <absolute-repo-path>/.jira-cache/html-verify/baseline/<page>.md
+   ```
+
+   For FHIR Core where the output path varies, discover the HTML file
+   first: `find . -name '<page>.html' -path '*/output/*' -newer .git/HEAD`
+
+   If the Playwright MCP plugin is not available (tools not found), skip
+   HTML verification with a note: "Playwright MCP not available — skipping
+   HTML verification. Install the playwright plugin to enable it."
+
 If errors increased: stop, surface the new errors, fix them, re-run the
 publisher. Do not proceed to commit until error count is `<=` baseline.
+
+### 10a. Capture current-branch HTML for verification
+
+After the publisher runs on your feature branch (step 9) and the QA delta
+is clean (step 10), capture the current-branch HTML output for the same
+page(s) you baselined.
+
+Skip this step if no HTML baseline was captured (Playwright unavailable, no
+mappable Related URL, or this is not the first ticket in the session and
+baselines already exist from a prior run).
+
+```bash
+mkdir -p .jira-cache/html-verify/current
+```
+
+For each page that was baselined:
+
+```
+browser_navigate → file://<absolute-repo-path>/output/<page>.html
+browser_take_screenshot → filename: <absolute-repo-path>/.jira-cache/html-verify/current/<page>.png
+                          type: png, fullPage: true
+browser_snapshot → filename: <absolute-repo-path>/.jira-cache/html-verify/current/<page>.md
+```
+
+Use the same URL-to-local-path mapping as the baseline step. The current
+build's output directory is the same location — the publisher overwrites
+`output/` on each run.
+
+### 10b. Verify the published HTML matches the ticket
+
+Compare the baseline and current captures against the ticket's disposition
+to check whether the intended change actually appears in the rendered
+output. This is an advisory verification check — it catches mechanical
+failures (wrong file edited, publisher caching issues, build-system quirks)
+but relies on Claude's judgment and can produce false results.
+
+**To perform the comparison:**
+
+1. Read the saved baseline accessibility snapshot back into context:
+   ```
+   Read .jira-cache/html-verify/baseline/<page>.md
+   ```
+
+2. Read the saved current accessibility snapshot:
+   ```
+   Read .jira-cache/html-verify/current/<page>.md
+   ```
+
+3. Compare the two snapshots against the ticket's `Resolution Description`
+   and relevant `fields`. Ask: does the intended change appear in the
+   current snapshot where it was absent in (or different from) the baseline?
+
+4. View the baseline and current screenshots (`.png` files) and check for
+   visual regressions — layout breaks, missing content, rendering issues
+   that the text comparison might miss.
+
+**Judgment criteria:**
+
+- (a) The specific change requested by the ticket is visible in the current
+  output (text added, removed, or modified as expected)
+- (b) No unintended visual regressions compared to the baseline
+  (layout intact, no missing sections, no rendering artifacts)
+- (c) The page renders correctly (not blank, no error messages, structure
+  preserved)
+
+**If verification passes:** Write a brief note to
+`.jira-cache/html-verify/verdict.md` confirming the change appears correct,
+then proceed to step 11 (synopsis).
+
+**If verification fails:** Write an assessment to
+`.jira-cache/html-verify/verdict.md` describing what's wrong, surface the
+specific issues to the user, and ask whether to:
+
+1. Fix the edit and re-run the publisher (go back to step 8)
+2. Override and proceed anyway (the check is advisory — the user has final say)
+
+Do not proceed to the synopsis until the user has either confirmed the
+verification passes or explicitly overridden a failure.
+
+**Limitations to be aware of:**
+
+- This is the same Claude instance that made the edit. If you misinterpreted
+  the ticket's intent, you may also misjudge the verification. Focus on
+  mechanical checks (is the text present? did the right page change?) rather
+  than semantic correctness judgments.
+- Accessibility snapshots may not capture all visible text, especially in
+  deeply nested tables or definition lists. Use the screenshot as a
+  complementary check.
+- This verification adds ~30-60 seconds per page. For large pages, consider
+  targeting a specific section rather than full-page screenshots.
 
 ### 11. Generate the synopsis
 
@@ -370,6 +496,8 @@ flow — separate branch, separate commits, separate PR:
    tickets touch disjoint files. If they touch the same file, run between
    tickets so you can localize errors.
 6. Parse QA delta against this repo's baseline.
+   (HTML verification — steps 10a/10b — is not yet supported in batch
+   mode. Skip it for now; it will be added in a follow-up.)
 7. Build `batch-synopses.json` from the per-ticket synopses you wrote.
 8. Format the aggregated PR body (`format_messages.py --batch ...`).
 9. Push and open the PR with `--repo <github_slug>`.

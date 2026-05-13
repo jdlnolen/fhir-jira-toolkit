@@ -108,6 +108,59 @@ See `INSTALL.md` for the full step-by-step including prerequisites
 For batch mode with tickets spanning multiple repos, this whole flow runs
 once per repo, and a final summary lists every PR opened.
 
+## HTML verification (optional)
+
+After the publisher runs, the workflow can use the **Playwright MCP plugin**
+to render the published HTML and verify that the intended change actually
+appears in the output. This catches mechanical failures — wrong file edited,
+publisher caching issues, stale build — that the QA error-count check alone
+would miss.
+
+### How it works
+
+1. On the first run per session, while still on the default branch with a
+   fresh publisher build, the workflow captures **baseline** screenshots and
+   accessibility snapshots of the page(s) referenced by the ticket.
+2. After the edit and publisher re-run on the feature branch, it captures
+   the **current** output of the same pages.
+3. Claude compares the two, checking whether the ticket's intended change
+   is visible and no visual regressions were introduced.
+4. If the check fails, Claude stops and asks whether to fix or override.
+
+### Prerequisites
+
+Install the Playwright plugin in Claude Code (it's a separate plugin from
+the official marketplace — `fhir-jira` does not install it automatically):
+
+```
+/plugin install playwright@claude-plugins-official
+```
+
+No other setup is needed.
+
+If the Playwright plugin is **not installed**, the HTML verification steps
+are skipped automatically and the rest of the workflow proceeds as usual.
+
+### What gets verified
+
+- The ticket's `Related URL` is mapped to the local publisher output path
+  (see `references/fhir-authoring.md` for the mapping tables).
+- Both a visual screenshot and a structured accessibility snapshot are
+  captured for before/after comparison.
+- Artifacts are stored in `.jira-cache/html-verify/` (baseline, current,
+  and a verdict summary).
+
+### Limitations
+
+- **Advisory, not a hard gate.** The user can always override a failed
+  check. The QA error-count check (`parse_qa.py`) remains the primary
+  automated gate.
+- **Same-session judgment.** The same Claude instance that made the edit
+  also judges the output. It catches mechanical errors reliably, but may
+  miss semantic misinterpretations of the ticket.
+- **Single-ticket only.** Batch mode (`/fhir-jira-batch`) does not yet
+  include HTML verification; it will be added in a follow-up.
+
 ## Synopsis discipline
 
 Every commit and every PR section gets a 1-3 sentence synopsis describing
