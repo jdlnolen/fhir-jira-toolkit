@@ -391,6 +391,47 @@ FSH errors surface in terminal output; validation errors appear in
 
 ---
 
+## Published URL to local output path mapping
+
+When verifying that a change appears in the publisher's HTML output, map the
+ticket's `Related URL` to a local file path under the publisher's output
+directory.
+
+### URL to output path
+
+| Published URL pattern | Local output path | Notes |
+|---|---|---|
+| `https://hl7.org/fhir/<page>.html` | Discovered: `find . -name '<page>.html' -path '*/output/*' -newer .git/HEAD 2>/dev/null` | FHIR Core Gradle — output location varies per build |
+| `https://build.fhir.org/<page>.html` | Same discovery pattern as above | FHIR Core CI mirror |
+| `https://hl7.org/fhir/extensions/<page>.html` | `output/<page>.html` | Extensions Pack (IG Publisher) |
+| `https://build.fhir.org/ig/HL7/fhir-extensions/<page>.html` | `output/<page>.html` | Extensions Pack CI mirror |
+| `https://hl7.org/fhir/us/core/<page>.html` | `output/<page>.html` | US Core IG (IG Publisher) |
+| `https://build.fhir.org/ig/HL7/<repo>/<page>.html` | `output/<page>.html` | Any IG (IG Publisher) |
+
+For FHIR Core, always use the `find` discovery pattern — the Gradle build's
+output directory structure is not fixed and may differ across builds. For
+IGs and the Extensions Pack, `output/<page>.html` is reliable.
+
+### Source file to output page (fallback when no Related URL)
+
+When the ticket has no `Related URL`, derive the output page from the edited
+source files:
+
+| Source file pattern | Output page |
+|---|---|
+| `source/<resource>/structuredefinition-<Resource>.xml` | `<resource>.html` (discovered via find for FHIR Core) |
+| `source/<resource>/<resource>-notes.xml` | `<resource>.html` |
+| `source/<resource>/<resource>-introduction.md` | `<resource>.html` |
+| `input/pagecontent/<page>.md` | `output/<page>.html` (IGs) |
+| `input/fsh/<name>.fsh` | `output/StructureDefinition-<name>.html` (IGs, Extensions Pack) |
+
+For FSH sources, the output filename depends on the resource type defined
+in the FSH file. `StructureDefinition-<name>.html` is the most common
+pattern, but `CodeSystem-<name>.html` or `ValueSet-<name>.html` may apply
+for non-profile resources.
+
+---
+
 ## Memory and performance
 
 | Task | Min RAM | JVM heap | Typical time |
