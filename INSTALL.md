@@ -141,7 +141,7 @@ You only need clones for repos you'll actually work in.
 Open Claude Code. In any conversation, run:
 
 ```
-/plugin marketplace add <owner>/fhir-jira-toolkit
+/plugin marketplace add jdlnolen/fhir-jira-toolkit
 ```
 
 Replace `<owner>` with the GitHub org or username hosting the repo
@@ -164,7 +164,7 @@ Run /plugin install <name> to install
 If you prefer a local install, or GitHub is unreachable:
 
 ```bash
-git clone https://github.com/<owner>/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
+git clone https://github.com/jdlnolen/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
 ```
 
 Then in Claude Code:

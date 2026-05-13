@@ -54,11 +54,9 @@ for the schema and how to add IGs.
 In Claude Code:
 
 ```
-/plugin marketplace add <owner>/fhir-jira-toolkit
+/plugin marketplace add jdlnolen/fhir-jira-toolkit
 /plugin install fhir-jira@fhir-jira-toolkit
 ```
-
-Replace `<owner>` with the GitHub org or username hosting the repo.
 
 Optionally override the default clone root if your HL7 repos aren't at
 `~/dev/hl7/`:
@@ -80,7 +78,7 @@ Then in a chat:
 If you prefer a local install (or are developing the plugin):
 
 ```bash
-git clone https://github.com/<owner>/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
+git clone https://github.com/jdlnolen/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
 ```
 
 Then in Claude Code:
