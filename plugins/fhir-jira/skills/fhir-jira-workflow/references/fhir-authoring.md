@@ -1,0 +1,419 @@
+# Working with the FHIR Specification — Authoring Reference
+
+Authoritative reference for reading and editing FHIR specification source
+files. Derived from and kept in sync with the CLAUDE.md in the FHIR
+development repositories.
+
+Use this during step 8 (Make the edit) to locate the right source file and
+apply the correct edit pattern. When this file conflicts with general
+knowledge, **this file wins** — it reflects the actual conventions in use.
+
+---
+
+## Build systems
+
+### FHIR Core (`HL7/fhir`) — Gradle
+
+Java-based FHIR Publisher invoked through Gradle. Requires Java 11+ and
+substantial memory (16+ GB RAM; JVM heap configured at 12.8 GB in
+`gradle.properties`).
+
+```bash
+# Standard full build (~20 min)
+./gradlew publish
+
+# Common flags
+./gradlew publish --args="-nogen"       # skip generation, validation only
+./gradlew publish --args="-noarchive"   # skip archive generation
+./gradlew publish --args="-web"         # produce HL7 publication form
+./gradlew publish --args="-offline"     # use cached dependencies if available
+
+# Alternative cross-platform entry points
+./publish.sh        # Unix/Mac/Linux (wraps gradlew)
+publish.bat         # Windows
+./build.sh          # CI build script
+```
+
+Key configuration files: `build.gradle.kts`, `gradle.properties`, `build.xml`.
+
+Do **not** run `_genonce.sh` against the FHIR Core repo. That script is
+for the IG Publisher toolchain; FHIR Core uses Gradle.
+
+### Implementation Guides and Extensions Pack — IG Publisher
+
+All IGs and the Extensions Pack use the same three shell scripts:
+
+```bash
+./_updatePublisher.sh    # download/update publisher.jar (~100 MB); run when stale
+./_genonce.sh            # build the IG once (~2–5 min, requires 4+ GB RAM)
+./_gencontinuous.sh      # continuous mode: rebuilds on every file change
+```
+
+Windows equivalents use `.bat`. Always run `_updatePublisher.sh` before
+`_genonce.sh` if the publisher tool might be out of date. The
+`publisher.jar` is downloaded automatically and must not be committed.
+
+Key configuration files: `sushi-config.yaml`, `ig.ini`, `package-list.json`.
+
+Do **not** run `./gradlew publish` against an IG repo.
+
+---
+
+## Directory structures
+
+### FHIR Core source layout
+
+```
+fhir/
+├── source/
+│   └── {resource-name}/
+│       ├── structuredefinition-{Resource}.xml   ← resource definition
+│       ├── bundle-{Resource}-search-params.xml  ← search parameters
+│       ├── {resource-name}-notes.xml            ← narrative notes (XHTML)
+│       ├── {resource-name}-introduction.md      ← introduction text
+│       ├── {resource-name}-examples.md          ← examples page
+│       └── {resource-name}-example-*.xml        ← example instances
+├── source/request/
+│   └── request-spreadsheet.xml                  ← shared code systems (request-intent etc.)
+├── build.gradle.kts
+├── gradle.properties                             ← JVM heap config (12.8 GB)
+└── build.xml
+```
+
+### IG and Extensions Pack layout
+
+```
+ig-name/
+├── sushi-config.yaml            ← primary IG configuration
+├── ig.ini                       ← IG Publisher config
+├── package-list.json            ← package metadata
+├── input/
+│   ├── fsh/                     ← FSH source files — EDIT THESE
+│   ├── pagecontent/             ← Markdown narrative pages — EDIT THESE
+│   └── ignoreWarnings.txt       ← validation suppressions
+├── fsh-generated/               ← DO NOT EDIT: generated from FSH by SUSHI
+│   └── resources/               ← generated FHIR JSON resources
+├── input-cache/                 ← cached tools (do not commit)
+└── output/                      ← generated IG website (do not commit)
+    ├── qa.html                  ← human-readable QA report
+    └── qa.json                  ← machine-readable QA report
+```
+
+**Critical:** never edit `fsh-generated/resources/` directly. Changes are
+overwritten on the next SUSHI compile. Edit the FSH source in `input/fsh/`
+instead.
+
+### IG toolchain
+
+```
+input/fsh/*.fsh
+      │
+      ▼  SUSHI compiles
+fsh-generated/resources/*.json
+      │
+      ▼  IG Publisher generates
+output/  (HTML documentation, QA report, validation results)
+```
+
+Use `_gencontinuous.sh` during iterative development — it watches for file
+changes and rebuilds automatically, making the edit-review cycle much faster.
+After changes settle, run `_genonce.sh` for a clean final build.
+
+---
+
+## Locating and editing source files
+
+### Core FHIR: Resource Structure Definitions
+
+**File pattern**: `source/{resource-name}/structuredefinition-{Resource}.xml`
+
+```
+source/specimen/structuredefinition-Specimen.xml
+source/observation/structuredefinition-Observation.xml
+source/servicerequest/structuredefinition-ServiceRequest.xml
+```
+
+Element definitions live in the `<differential>` block. After changing any
+element name or type, always check and update the search parameters bundle.
+
+### Core FHIR: Search Parameters
+
+**File pattern**: `source/{resource-name}/bundle-{Resource}-search-params.xml`
+
+```
+source/specimen/bundle-Specimen-search-params.xml
+source/observation/bundle-Observation-search-params.xml
+```
+
+Structure of a search parameter entry:
+
+```xml
+<entry>
+  <resource>
+    <SearchParameter>
+      <id value="Specimen-additive"/>
+      <code value="additive"/>
+      <type value="reference"/>
+      <expression value="Specimen.processing.additive.reference"/>
+      <description value="Additive associated with container"/>
+    </SearchParameter>
+  </resource>
+</entry>
+```
+
+Search parameter type by element type:
+
+| Element type | Search parameter type |
+|---|---|
+| `canonical` | `token` (NOT `reference`) |
+| `Reference` | `reference` |
+| `uri` | `uri` |
+| `CodeableReference.reference` | `reference` |
+| `CodeableReference.concept` | `token` |
+
+For `CodeableReference` elements, always add **two** search parameters:
+
+```xml
+<!-- Reference search -->
+<SearchParameter>
+  <id value="[Resource]-body-structure"/>
+  <type value="reference"/>
+  <expression value="[Resource].bodyStructure.reference"/>
+</SearchParameter>
+
+<!-- Token search -->
+<SearchParameter>
+  <id value="[Resource]-body-structure-code"/>
+  <type value="token"/>
+  <expression value="[Resource].bodyStructure.concept"/>
+</SearchParameter>
+```
+
+### Core FHIR: Notes files
+
+**File pattern**: `source/{resource-name}/{resource-name}-notes.xml`
+
+XHTML fragments included in the generated documentation. Use for workflow
+guidance, usage patterns, and implementation notes.
+
+```xml
+<div xmlns="http://www.w3.org/1999/xhtml">
+  <a name="notes"></a>
+  <h2>Notes:</h2>
+  <ul>
+    <li>Usage guidance here...</li>
+  </ul>
+</div>
+```
+
+### Core FHIR: Code Systems (spreadsheet format)
+
+Shared code systems are defined in spreadsheet XML files. The most commonly
+modified is the request-intent code system:
+
+**File**: `source/request/request-spreadsheet.xml` (worksheet: `request-intent`)
+
+Adding a new intent code:
+
+```xml
+<!-- Parent code (no parent reference in column 4) -->
+<Row ss:AutoFitHeight="0" ss:Height="90">
+  <Cell><Data ss:Type="String">proposal</Data></Cell>
+  <Cell><Data ss:Type="Number">1</Data></Cell>
+  <Cell><Data ss:Type="String">Proposal</Data></Cell>
+  <Cell><Data ss:Type="String">Definition text...</Data></Cell>
+</Row>
+
+<!-- Child code — column 4 contains #parent-id -->
+<Row ss:AutoFitHeight="0" ss:Height="90">
+  <Cell><Data ss:Type="String">solicit-offer</Data></Cell>
+  <Cell><Data ss:Type="Number">10</Data></Cell>
+  <Cell ss:Index="4"><Data ss:Type="String">#1</Data></Cell>
+  <Cell><Data ss:Type="String">Solicit Offer</Data></Cell>
+  <Cell><Data ss:Type="String">Definition text...</Data></Cell>
+</Row>
+```
+
+After adding or modifying codes, also increment `ExpandedRowCount` in the
+table header.
+
+### IG and Extensions Pack: FSH source
+
+Primary source lives in `input/fsh/`. FSH (FHIR Shorthand) is a
+human-readable syntax that SUSHI compiles into FHIR JSON resources. See
+the sushi-config.yaml for IG-level settings.
+
+Narrative content: `input/pagecontent/*.md` — standard Markdown files that
+become HTML pages in the generated IG.
+
+Review generated resources in `fsh-generated/resources/` after build to
+confirm FSH compiled as expected, but do not edit them directly.
+
+---
+
+## Critical cross-cutting rules
+
+### Always update Search Parameters when changing Structure Definitions
+
+This is the most common source of build errors. When you modify a structure
+definition:
+
+1. If you rename an element (e.g., `instantiatesCanonical` → `instantiates`),
+   update BOTH the StructureDefinition AND the search parameter expression.
+2. If you change an element's type, verify the search parameter type is still
+   correct (canonical elements → `token`, not `reference`).
+3. If you add a new `CodeableReference` element, add two search parameters —
+   one for `.reference` (type `reference`) and one for `.concept` (type `token`).
+
+### Request resources all share the request-intent code system
+
+When a ticket modifies `source/request/request-spreadsheet.xml` in any way,
+EVERY Request resource's `intent` short description must be updated:
+
+- ActivityDefinition
+- CommunicationRequest
+- DeviceRequest
+- NutritionOrder
+- RequestOrchestration
+- ServiceRequest
+- SupplyRequest
+
+Find and update in each resource's StructureDefinition:
+
+```xml
+<short value="proposal | plan | directive | order | original-order | reflex-order | filler-order | instance-order | option"/>
+```
+
+### FHIR R6: bodySite → bodyStructure migration (OO resources)
+
+An active migration across Orders and Observations resources. When working
+on tickets for any affected resource, check whether a related migration
+change is in scope for that ticket.
+
+Affected resources:
+- **Observation** — `bodySite` deprecated, `bodyStructure` changed to CodeableReference
+- **DocumentReference** — `bodySite` renamed to `bodyStructure`
+- **ObservationDefinition** — renamed and changed to CodeableReference
+- **DeviceUsage** — `bodySite` renamed to `bodyStructure`
+- **ServiceRequest** — `bodySite` deprecated, `bodyStructure` changed to CodeableReference
+
+Standard pattern for `bodyStructure` elements:
+
+```xml
+<element id="[Resource].bodyStructure">
+  <type>
+    <code value="CodeableReference"/>
+    <targetProfile value="http://hl7.org/fhir/StructureDefinition/BodyStructure"/>
+  </type>
+  <binding>
+    <strength value="example"/>
+    <description value="SNOMED CT Body Structures"/>
+    <valueSet value="http://hl7.org/fhir/ValueSet/body-site"/>
+  </binding>
+</element>
+```
+
+Implementation checklist for a `bodyStructure` migration ticket:
+
+1. Add `bodyStructure` with `CodeableReference(BodyStructure)` type
+2. Add two search parameters: `[Resource]-body-structure` (`.reference`,
+   type `reference`) and `[Resource]-body-structure-code` (`.concept`, type `token`)
+3. Mark old `bodySite` as deprecated with clear migration guidance — do not delete it
+4. Remove mutual-exclusion constraints between `bodySite` and `bodyStructure`
+5. Use the `bodySite` extension URL (not `bodyStructure`) in any extension references
+
+### `instantiates` patterns in Request resources
+
+Several Request resources have or are migrating to a consolidated
+`instantiates` pattern:
+
+- `instantiatesCanonical`: references FHIR-defined protocols (ActivityDefinition, PlanDefinition)
+- `instantiatesUri`: references external protocols
+
+Some R6 tickets consolidate these to a single `instantiates` element of
+type `canonical`. When working on such a ticket: update the StructureDefinition
+AND the search parameters. The `canonical` type maps to search type `token`,
+not `reference`.
+
+---
+
+## Resource-specific notes
+
+### Specimen
+
+**Structure Definition**: `source/specimen/structuredefinition-Specimen.xml`
+**Search Parameters**: `source/specimen/bundle-Specimen-search-params.xml`
+**Examples**: `source/specimen/specimen-example-*.xml`
+
+`Specimen.processing.additive`:
+- Type: `CodeableReference` (references Substance or uses inline codes)
+- Target: `http://hl7.org/fhir/StructureDefinition/Substance`
+
+HL7 v2-0371 codes for formalin preservatives (CodeSystem URL:
+`http://terminology.hl7.org/CodeSystem/v2-0371`):
+
+```xml
+<additive>
+  <concept>
+    <coding>
+      <system value="http://terminology.hl7.org/CodeSystem/v2-0371"/>
+      <code value="F10"/>        <!-- 10% Formalin — NOT "FORM10" -->
+      <display value="10% Formalin"/>
+    </coding>
+  </concept>
+</additive>
+```
+
+Common codes: `F10` (10% Formalin), `BF10` (Buffered 10% formalin),
+`CARS` (Carson's Modified 10% formalin).
+
+---
+
+## Build validation
+
+### Finding QA output
+
+| Build | Human-readable | Machine-readable |
+|---|---|---|
+| IG Publisher (IGs, Extensions Pack) | `output/qa.html` | `output/qa.json` |
+| FHIR Core Gradle | varies — run `find . -name qa.json -newer .git/HEAD` after first build | same path |
+
+After any edit, review `output/qa.html` for new validation errors before
+committing. The `parse_qa.py` script reads `qa.json`; `qa.html` is the
+human-friendly version for understanding what went wrong.
+
+### Validation after FSH edits (IGs)
+
+After `_genonce.sh`, review the generated FHIR resources in
+`fsh-generated/resources/` to confirm FSH compiled as expected. Common
+FSH errors surface in terminal output; validation errors appear in
+`output/qa.html`.
+
+---
+
+## Memory and performance
+
+| Task | Min RAM | JVM heap | Typical time |
+|---|---|---|---|
+| FHIR Core full build | 16 GB | 12.8 GB | ~20 minutes |
+| FHIR Core, generation only (`-nogen`) | 8 GB | 12.8 GB | ~5 minutes |
+| IG build (`_genonce.sh`) | 4 GB | — (IG Publisher default) | 2–5 minutes |
+| IG continuous build (`_gencontinuous.sh`) | 4 GB | — | seconds per change |
+
+If a FHIR Core Gradle build fails with out-of-memory errors, close other
+applications. The heap configuration in `gradle.properties` is the minimum
+that works reliably. Do not lower it to speed up the build; it will fail.
+
+---
+
+## Governance
+
+**All FHIR Core changes** (`HL7/fhir`) should go through the JIRA workflow.
+Do not open PRs directly against `HL7/fhir` without a corresponding resolved
+JIRA ticket — this is the HL7 governance model for the core specification.
+
+**IG changes** may vary. US Core and other HL7-governed IGs typically also
+use JIRA. For any IG, check the contributing guide before opening a direct PR.
+
+CI/CD pipelines for the core spec publish automatically to build.fhir.org
+after a PR merges — no manual publication step is needed.

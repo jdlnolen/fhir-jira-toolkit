@@ -167,16 +167,23 @@ For trivial fixes, proceed directly.
 
 ### 8. Make the edit
 
-Edit the source files. Layouts vary by repo:
+**Read `references/fhir-authoring.md` before editing.** It is the
+authoritative reference for locating source files, applying edit patterns,
+and avoiding cross-cutting pitfalls (search parameter updates, code system
+propagation, bodySite→bodyStructure migration). When it conflicts with
+general FHIR knowledge, the reference wins.
 
-- **FHIR Core (`HL7/fhir`)**: `source/<resource>/<resource>-spreadsheet.xml` (legacy) or
-  `source/<resource>/<resource>.xml`; narrative in `source/<resource>/<resource>-introduction.md`,
-  `-notes.md`, `-examples.md`; cross-cutting pages at `source/<topic>.md`.
-- **Extensions Pack (`HL7/fhir-extensions`)**: profiles in `input/resources/`,
-  pages in `input/pagecontent/`.
-- **IGs (typical layout)**: profiles in `input/resources/`, narrative in
-  `input/pagecontent/<page>.md`, examples in `input/examples/`. Read `ig.ini`
-  to confirm.
+Summary of where source files live (see the reference for full details):
+
+- **FHIR Core (`HL7/fhir`)**: `source/<resource>/structuredefinition-<Resource>.xml`
+  for definitions, `bundle-<Resource>-search-params.xml` for search params,
+  `<resource>-notes.xml` for XHTML notes, `<resource>-introduction.md` and
+  `-examples.md` for narrative. Code systems in `source/request/request-spreadsheet.xml`.
+- **Extensions Pack (`HL7/fhir-extensions`)**: FSH in `input/fsh/`,
+  pages in `input/pagecontent/`. Never edit `fsh-generated/`.
+- **IGs (typical layout)**: FSH in `input/fsh/`, narrative in
+  `input/pagecontent/<page>.md`. Check `sushi-config.yaml` and `ig.ini`
+  for IG-specific settings. Never edit `fsh-generated/`.
 
 ### 9. Run the publisher
 
@@ -382,6 +389,7 @@ poll them.
 
 ## References
 
+- `references/fhir-authoring.md` — **read before editing.** Source file locations, edit patterns, build systems, cross-cutting rules (search params, code systems, bodySite migration).
 - `references/qa-json-schema.md` — `qa.json` field variants the parser handles.
 - `references/jira-fields.md` — HL7 JIRA custom field display names and the REST API.
 - `references/commit-and-pr-templates.md` — exact commit and PR body templates.
