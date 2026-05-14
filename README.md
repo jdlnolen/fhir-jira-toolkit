@@ -211,6 +211,59 @@ After local edits, reload the plugin:
 /reload-plugins
 ```
 
+## Compounding knowledge with compound-engineering
+
+If you have the [compound-engineering](https://github.com/EveryInc/compound-engineering-plugin)
+and/or [compound-knowledge](https://github.com/EveryInc/compound-knowledge-plugin)
+plugins installed, you can use them alongside `fhir-jira` to capture and
+reuse what you learn while resolving tickets.
+
+### Recommended workflow
+
+1. **After resolving a tricky ticket**, run `/ce:compound` to document the
+   solution. The plugin saves it to `docs/solutions/` with searchable
+   frontmatter (category, tags, severity). Next time a similar ticket
+   comes up, the learnings-researcher agent finds it automatically.
+
+2. **Before starting a complex ticket**, run `/ce:plan` to structure your
+   approach. The planner searches `docs/solutions/` for past solutions
+   that apply — so knowledge from earlier tickets flows forward without
+   you having to remember it.
+
+3. **For domain knowledge** (FHIR patterns, HL7 conventions, publisher
+   quirks), run `/kw:compound` to save insights to `docs/knowledge/`.
+   These are searched by `/kw:plan` and the knowledge-base-researcher
+   agent in future sessions.
+
+### Excluding plugin artifacts from git
+
+The compound plugins create local workflow files that are useful to you
+but shouldn't be committed to the repo:
+
+| Directory | Created by | Contains |
+|-----------|-----------|----------|
+| `docs/plans/` | `/ce:plan`, `/kw:plan` | Implementation plans |
+| `docs/solutions/` | `/ce:compound` | Documented solutions by category |
+| `docs/knowledge/` | `/kw:compound` | Domain insights and learnings |
+| `docs/brainstorms/` | `/ce:brainstorm`, `/kw:brainstorm` | Exploration notes |
+
+Add these to your `.git/info/exclude` (per-clone, never committed):
+
+```bash
+cat >> .git/info/exclude <<'EOF'
+
+# Compound-engineering and compound-knowledge plugin artifacts
+docs/plans/
+docs/solutions/
+docs/knowledge/
+docs/brainstorms/
+EOF
+```
+
+Using `.git/info/exclude` rather than `.gitignore` keeps the project's
+gitignore clean — these are personal developer tooling artifacts, not
+project-level concerns.
+
 ## Limits and known issues
 
 - **Publisher is slow.** A FHIR-core run is 5-30 min; IGs are usually faster.
