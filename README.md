@@ -239,6 +239,8 @@ fhir-jira-toolkit/                                  ← marketplace root
         ├── commands/
         │   ├── fhir-jira.md
         │   └── fhir-jira-batch.md
+        ├── hooks/
+        │   └── check-update.py                     ← session-start update check
         └── skills/
             └── fhir-jira-workflow/
                 ├── SKILL.md
