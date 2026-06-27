@@ -3,3 +3,11 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 .claude/
+
+# Local agent workflow artifacts. Keep these out of source repos.
+docs/plans/
+docs/solutions/
+docs/knowledge/
+docs/brainstorms/
+.jira-cache/
+.codex/

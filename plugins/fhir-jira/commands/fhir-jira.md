@@ -21,7 +21,7 @@ Key flow:
 6. Generate the synopsis **after** the publisher run (must reflect final
    state, including any fix-ups).
 7. Format the commit message and PR body via `scripts/format_messages.py`.
-8. Commit, push, open the PR with `gh pr create --repo <slug>`, watch CI.
+8. Commit, push, open the draft PR with `gh pr create --draft --repo <slug>`, watch CI.
 
 If the ticket disposition is non-trivial (anything beyond a typo, broken
 link, or one-line clarification), **stop and confirm the edit plan with

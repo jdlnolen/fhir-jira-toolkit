@@ -4,19 +4,19 @@ Format commit messages and PR bodies for FHIR JIRA tickets.
 
 Single ticket:
     format_messages.py \\
-        --ticket .jira-cache/FHIR-12345.json \\
+        --ticket /tmp/fhir-jira-work/HL7-fhir/FHIR-12345.json \\
         --synopsis-file path/to/synopsis.txt \\
         --files-changed "$(git diff --name-only --cached)" \\
-        --qa-delta .jira-cache/qa-delta.json \\
-        --out-commit .jira-cache/FHIR-12345.commit.txt \\
-        --out-pr .jira-cache/FHIR-12345.pr.md
+        --qa-delta /tmp/fhir-jira-work/HL7-fhir/qa-delta.json \\
+        --out-commit /tmp/fhir-jira-work/HL7-fhir/FHIR-12345.commit.txt \\
+        --out-pr /tmp/fhir-jira-work/HL7-fhir/FHIR-12345.pr.md
 
 Batch:
     format_messages.py --batch \\
         --tickets FHIR-1234,FHIR-1235,FHIR-1236 \\
-        --synopses-file .jira-cache/batch-synopses.json \\
-        --qa-delta .jira-cache/qa-delta.json \\
-        --out-pr .jira-cache/batch.pr.md
+        --synopses-file /tmp/fhir-jira-work/HL7-fhir/batch-synopses.json \\
+        --qa-delta /tmp/fhir-jira-work/HL7-fhir/qa-delta.json \\
+        --out-pr /tmp/fhir-jira-work/HL7-fhir/batch.pr.md
 
 batch-synopses.json structure:
     {
@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import textwrap
 from pathlib import Path
@@ -223,7 +224,11 @@ def main(argv: list[str]) -> int:
     # batch
     parser.add_argument("--tickets", help="Comma-separated ticket keys (batch mode)")
     parser.add_argument("--synopses-file", help="JSON map of synopses (batch mode)")
-    parser.add_argument("--cache-dir", default=".jira-cache", help="Where ticket JSONs are cached")
+    parser.add_argument(
+        "--cache-dir",
+        default=os.environ.get("FHIR_JIRA_WORK_DIR", "/tmp/fhir-jira-staging"),
+        help="Where ticket JSONs are cached",
+    )
 
     # both
     parser.add_argument("--qa-delta", help="Path to qa-delta.json from parse_qa.py")

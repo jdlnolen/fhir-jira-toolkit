@@ -1,0 +1,26 @@
+{
+  "name": "fhir-jira",
+  "version": "0.1.0",
+  "description": "End-to-end workflow for resolving HL7 FHIR JIRA tickets across FHIR Core, the Extensions Pack, and Implementation Guides.",
+  "author": {
+    "name": "JD"
+  },
+  "repository": "https://github.com/jdlnolen/fhir-jira-toolkit",
+  "license": "MIT",
+  "keywords": ["fhir", "hl7", "jira", "ig-publisher", "github"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "FHIR JIRA Toolkit",
+    "shortDescription": "Resolve HL7 FHIR JIRA tickets from ticket fetch through draft PR.",
+    "longDescription": "Workflow guidance and helper scripts for resolving HL7 FHIR JIRA tickets across FHIR Core, the Extensions Pack, and Implementation Guides. Resolves the target repository, stages ticket artifacts outside source repos, guides publisher validation, formats commit and PR text, and opens draft pull requests.",
+    "developerName": "JD",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Resolve FHIR-12345 with the FHIR JIRA workflow.",
+      "Map this FHIR ticket to its target repo.",
+      "Prepare a draft PR for this FHIR ticket."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

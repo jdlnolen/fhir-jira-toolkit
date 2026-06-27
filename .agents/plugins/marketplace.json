@@ -1,0 +1,20 @@
+{
+  "name": "fhir-jira-toolkit",
+  "interface": {
+    "displayName": "FHIR JIRA Toolkit"
+  },
+  "plugins": [
+    {
+      "name": "fhir-jira",
+      "source": {
+        "source": "local",
+        "path": "./plugins/fhir-jira"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

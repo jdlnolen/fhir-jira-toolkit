@@ -6,10 +6,10 @@ Reads the cached ticket JSON, looks up the target spec via the repo map
 (default + optional user override), and prints the resolved repo metadata.
 
 Usage:
-    resolve_repo.py --ticket .jira-cache/FHIR-12345.json
-    resolve_repo.py --ticket .jira-cache/FHIR-12345.json --json
+    resolve_repo.py --ticket /tmp/fhir-jira-work/HL7-fhir/FHIR-12345.json
+    resolve_repo.py --ticket /tmp/fhir-jira-work/HL7-fhir/FHIR-12345.json --json
     resolve_repo.py --list
-    resolve_repo.py --group .jira-cache/FHIR-1.json,.jira-cache/FHIR-2.json
+    resolve_repo.py --group /tmp/fhir-jira-work/FHIR-1.json,/tmp/fhir-jira-work/FHIR-2.json
         # Outputs JSON: {"HL7/fhir": ["FHIR-1"], "HL7/US-Core": ["FHIR-2"]}
 
 Resolution order:
@@ -20,7 +20,8 @@ Resolution order:
     3. If still ambiguous, exit 2 and surface the candidates.
 
 Repo map locations (later wins for duplicate GitHub slugs):
-    1. ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/repo-map.json (shipped)
+    1. ${FHIR_JIRA_PLUGIN_ROOT}, ${CODEX_PLUGIN_ROOT}, or ${CLAUDE_PLUGIN_ROOT}
+       /skills/fhir-jira-workflow/repo-map.json (shipped)
     2. ~/.config/fhir-jira-toolkit/repo-map.json (user override)
     3. ./repo-map.local.json (project-local override)
 """
@@ -46,15 +47,16 @@ def _plugin_root() -> Path:
     """Locate the plugin root.
 
     Priority:
-      1. $CLAUDE_PLUGIN_ROOT (set by Claude Code at runtime)
-      2. Walk up from this file's location looking for .claude-plugin/plugin.json
+      1. $FHIR_JIRA_PLUGIN_ROOT, $CODEX_PLUGIN_ROOT, or $CLAUDE_PLUGIN_ROOT
+      2. Walk up from this file's location looking for a Codex or Claude plugin manifest
     """
-    env = os.environ.get("CLAUDE_PLUGIN_ROOT")
-    if env:
-        return Path(env)
+    for env_name in ("FHIR_JIRA_PLUGIN_ROOT", "CODEX_PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT"):
+        env = os.environ.get(env_name)
+        if env:
+            return Path(env)
     here = Path(__file__).resolve()
     for p in [here, *here.parents]:
-        if (p / ".claude-plugin" / "plugin.json").exists():
+        if (p / ".codex-plugin" / "plugin.json").exists() or (p / ".claude-plugin" / "plugin.json").exists():
             return p
     return here.parent.parent.parent.parent  # best effort
 

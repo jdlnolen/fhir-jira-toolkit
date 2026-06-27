@@ -8,7 +8,7 @@ own IGs and adjust local clone paths. This doc explains how.
 
 Three locations, merged in this order (later wins for any given GitHub slug):
 
-1. **Shipped defaults**: `${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/repo-map.json`
+1. **Shipped defaults**: `${FHIR_JIRA_PLUGIN_ROOT}`, `${CODEX_PLUGIN_ROOT}`, or `${CLAUDE_PLUGIN_ROOT}` `/skills/fhir-jira-workflow/repo-map.json`
    — don't edit this; updates from the plugin will overwrite it.
 2. **User-global override**: `~/.config/fhir-jira-toolkit/repo-map.json`
    — your personal settings, applies across all projects.
@@ -18,7 +18,8 @@ Three locations, merged in this order (later wins for any given GitHub slug):
 To inspect the merged result:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/resolve_repo.py --list
+PLUGIN_ROOT="${FHIR_JIRA_PLUGIN_ROOT:-${CODEX_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}}"
+python3 "$PLUGIN_ROOT/skills/fhir-jira-workflow/scripts/resolve_repo.py" --list
 ```
 
 ## Schema
@@ -108,8 +109,8 @@ You don't need to repeat fields you're not overriding. To verify the
 mapping picks up correctly, fetch a ticket from that IG and run:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/resolve_repo.py \
-  --ticket .jira-cache/FHIR-NNNN.json
+python3 "$PLUGIN_ROOT/skills/fhir-jira-workflow/scripts/resolve_repo.py" \
+  --ticket "$FHIR_JIRA_WORK_DIR/FHIR-NNNN.json"
 ```
 
 ## Changing your clone root
@@ -143,7 +144,7 @@ checked out under a different name. Set `local_path` explicitly:
 
 Note that `github` should still be the upstream slug — that's where PRs
 go. If you want to PR against your fork instead, that's a different change
-(adjust the `gh pr create --repo ...` argument in the skill or override
+(adjust the `gh pr create --draft --repo ...` argument in the skill or override
 locally).
 
 ## Resolution semantics in batch mode

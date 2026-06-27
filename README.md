@@ -1,28 +1,29 @@
 # fhir-jira-toolkit
 
-A Claude Code marketplace containing the `fhir-jira` plugin — end-to-end
-tooling that takes HL7 FHIR JIRA tickets from "open" to "PR with green CI"
-across the base FHIR specification, the FHIR Extensions Pack, and FHIR
-Implementation Guides. Each spec lives in its own GitHub repository; the
-plugin auto-resolves which repo a ticket targets.
+A plugin marketplace for Claude Code and Codex containing the `fhir-jira`
+plugin — end-to-end tooling that takes HL7 FHIR JIRA tickets from "open" to
+"draft PR with green CI" across the base FHIR specification, the FHIR
+Extensions Pack, and FHIR Implementation Guides. Each spec lives in its own
+GitHub repository; the plugin auto-resolves which repo a ticket targets.
 
 ## What you get
 
 After installing the `fhir-jira` plugin from this marketplace:
 
-### Slash commands
+### Claude Code slash commands
 
 - **`/fhir-jira FHIR-NNNN`** — single-ticket workflow. Auto-resolves
   whether the ticket is against `HL7/fhir`, `HL7/fhir-extensions`, or an
   IG, and operates in the right repo.
 - **`/fhir-jira-batch <filter-id|FHIR-NNNN,FHIR-NNNN,...>`** — batch
-  workflow. Groups tickets by target repo and produces **one PR per repo**
+  workflow. Groups tickets by target repo and produces **one draft PR per repo**
   touched, with one commit per ticket inside each.
 
-### Skill
+### Codex skill
 
 - **`fhir-jira-workflow`** — the procedural body. Auto-triggers when you
-  ask Claude to work on a FHIR JIRA ticket even outside the slash commands.
+  ask Codex or Claude to work on a FHIR JIRA ticket. In Codex, invoke it by
+  asking naturally or by selecting the installed plugin/skill with `@`.
 
 ### Helper scripts
 
@@ -49,7 +50,21 @@ for the schema and how to add IGs.
 
 ## Installation
 
-### From GitHub (recommended)
+### Codex from GitHub
+
+```bash
+codex plugin marketplace add jdlnolen/fhir-jira-toolkit
+codex plugin add fhir-jira@fhir-jira-toolkit
+```
+
+After installing, start a new Codex thread and ask it to use the FHIR JIRA
+workflow:
+
+```text
+Use fhir-jira-workflow to resolve FHIR-12345.
+```
+
+### Claude Code from GitHub
 
 In Claude Code:
 
@@ -78,13 +93,20 @@ Then in a chat:
 If you prefer a local install (or are developing the plugin):
 
 ```bash
-git clone https://github.com/jdlnolen/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
+git clone https://github.com/jdlnolen/fhir-jira-toolkit.git /path/to/fhir-jira-toolkit
 ```
 
-Then in Claude Code:
+For Codex:
+
+```bash
+codex plugin marketplace add /path/to/fhir-jira-toolkit
+codex plugin add fhir-jira@fhir-jira-toolkit
+```
+
+For Claude Code:
 
 ```
-/plugin marketplace add ~/.claude/marketplaces/fhir-jira-toolkit
+/plugin marketplace add /path/to/fhir-jira-toolkit
 /plugin install fhir-jira@fhir-jira-toolkit
 ```
 
@@ -97,16 +119,17 @@ See `INSTALL.md` for the full step-by-step including prerequisites
 2. `resolve_repo.py` matches the ticket's `Specification` field (or, as
    a fallback, the URLs in its `Related URL` and description) against
    the repo map to determine which repo to operate in.
-3. Claude `cd`s into that repo, syncs, branches, and reads the disposition.
-4. Claude makes the edit. Non-trivial edits pause for user approval.
+3. The agent `cd`s into that repo, syncs, branches, and reads the disposition.
+4. The agent makes the edit. Non-trivial edits pause for user approval.
 5. The IG Publisher runs locally; `parse_qa.py` confirms errors did not
    increase (per-repo baseline).
-6. Claude writes the synopsis (only after the publisher passes).
+6. The agent writes the synopsis (only after the publisher passes).
 7. `format_messages.py` produces the commit message and PR body.
-8. Claude commits, pushes, opens the PR via `gh`, and watches CI.
+8. The agent commits, pushes, opens a draft PR via `gh pr create --draft`,
+   and watches CI.
 
 For batch mode with tickets spanning multiple repos, this whole flow runs
-once per repo, and a final summary lists every PR opened.
+once per repo, and a final summary lists every draft PR opened.
 
 ## HTML verification (optional)
 
@@ -129,8 +152,9 @@ would miss.
 
 ### Prerequisites
 
-Install the Playwright plugin in Claude Code (it's a separate plugin from
-the official marketplace — `fhir-jira` does not install it automatically):
+Install the Playwright/browser automation plugin for your agent runtime if you
+want HTML verification. `fhir-jira` does not install browser tooling
+automatically.
 
 ```
 /plugin install playwright@claude-plugins-official
@@ -147,15 +171,15 @@ are skipped automatically and the rest of the workflow proceeds as usual.
   (see `references/fhir-authoring.md` for the mapping tables).
 - Both a visual screenshot and a structured accessibility snapshot are
   captured for before/after comparison.
-- Artifacts are stored in `.jira-cache/html-verify/` (baseline, current,
-  and a verdict summary).
+- Artifacts are stored under `$FHIR_JIRA_WORK_DIR/html-verify/` outside the
+  target FHIR repository (baseline, current, and a verdict summary).
 
 ### Limitations
 
 - **Advisory, not a hard gate.** The user can always override a failed
   check. The QA error-count check (`parse_qa.py`) remains the primary
   automated gate.
-- **Same-session judgment.** The same Claude instance that made the edit
+- **Same-session judgment.** The same agent instance that made the edit
   also judges the output. It catches mechanical errors reliably, but may
   miss semantic misinterpretations of the ticket.
 - **Single-ticket only.** Batch mode (`/fhir-jira-batch`) does not yet
@@ -193,7 +217,7 @@ Edit `~/.config/fhir-jira-toolkit/repo-map.json`:
 }
 ```
 
-Verify by asking Claude in a chat: `Run resolve_repo.py --list`
+Verify by asking your agent in a chat: `Run resolve_repo.py --list`
 
 Full schema: `plugins/fhir-jira/skills/fhir-jira-workflow/references/repo-map.md`.
 
@@ -213,32 +237,26 @@ After local edits, reload the plugin:
 
 ## Compounding knowledge with compound-engineering
 
-If you have the [compound-engineering](https://github.com/EveryInc/compound-engineering-plugin)
-and/or [compound-knowledge](https://github.com/EveryInc/compound-knowledge-plugin)
-plugins installed, you can use them alongside `fhir-jira` to capture and
-reuse what you learn while resolving tickets.
+If you have planning, compounding, or knowledge-capture plugins installed, you
+can use them alongside `fhir-jira` to capture and reuse what you learn while
+resolving tickets. Keep their outputs outside the FHIR repository working tree
+unless you explicitly intend to commit them to that project.
 
 ### Recommended workflow
 
-1. **After resolving a tricky ticket**, run `/ce:compound` to document the
-   solution. The plugin saves it to `docs/solutions/` with searchable
-   frontmatter (category, tags, severity). Next time a similar ticket
-   comes up, the learnings-researcher agent finds it automatically.
+1. **After resolving a tricky ticket**, capture the reusable learning in your
+   personal or workspace knowledge location, not inside the target FHIR repo.
 
-2. **Before starting a complex ticket**, run `/ce:plan` to structure your
-   approach. The planner searches `docs/solutions/` for past solutions
-   that apply — so knowledge from earlier tickets flows forward without
-   you having to remember it.
+2. **Before starting a complex ticket**, create plans in a separate scratch
+   workspace or `/tmp` location. Do not save plans under the FHIR repo.
 
 3. **For domain knowledge** (FHIR patterns, HL7 conventions, publisher
-   quirks), run `/kw:compound` to save insights to `docs/knowledge/`.
-   These are searched by `/kw:plan` and the knowledge-base-researcher
-   agent in future sessions.
+   quirks), save insights to your configured personal knowledge store.
 
 ### Excluding plugin artifacts from git
 
-The compound plugins create local workflow files that are useful to you
-but shouldn't be committed to the repo:
+Agent tools can create local workflow files that are useful to you but should
+not be committed to FHIR repos:
 
 | Directory | Created by | Contains |
 |-----------|-----------|----------|
@@ -247,7 +265,9 @@ but shouldn't be committed to the repo:
 | `docs/knowledge/` | `/kw:compound` | Domain insights and learnings |
 | `docs/brainstorms/` | `/ce:brainstorm`, `/kw:brainstorm` | Exploration notes |
 
-Add these to your `.git/info/exclude` (per-clone, never committed):
+The repository `.gitignore` already excludes these paths for this toolkit. For
+target FHIR repositories, add them to `.git/info/exclude` (per-clone, never
+committed) if your tools create them there:
 
 ```bash
 cat >> .git/info/exclude <<'EOF'
@@ -260,8 +280,8 @@ docs/brainstorms/
 EOF
 ```
 
-Using `.git/info/exclude` rather than `.gitignore` keeps the project's
-gitignore clean — these are personal developer tooling artifacts, not
+Using `.git/info/exclude` rather than `.gitignore` keeps each FHIR project's
+gitignore clean. These are personal developer tooling artifacts, not
 project-level concerns.
 
 ## Limits and known issues
@@ -281,17 +301,22 @@ project-level concerns.
 
 ```
 fhir-jira-toolkit/                                  ← marketplace root
+├── .agents/
+│   └── plugins/
+│       └── marketplace.json                        ← Codex marketplace
 ├── .claude-plugin/
-│   └── marketplace.json                            ← lists the plugin
+│   └── marketplace.json                            ← Claude Code marketplace
 ├── README.md
 ├── INSTALL.md
 └── plugins/
     └── fhir-jira/                                  ← the plugin
         ├── .claude-plugin/
-        │   └── plugin.json
+        │   └── plugin.json                         ← Claude Code manifest
+        ├── .codex-plugin/
+        │   └── plugin.json                         ← Codex manifest
         ├── commands/
-        │   ├── fhir-jira.md
-        │   └── fhir-jira-batch.md
+        │   ├── fhir-jira.md                        ← Claude Code slash command
+        │   └── fhir-jira-batch.md                  ← Claude Code slash command
         ├── hooks/
         │   └── check-update.py                     ← session-start update check
         └── skills/

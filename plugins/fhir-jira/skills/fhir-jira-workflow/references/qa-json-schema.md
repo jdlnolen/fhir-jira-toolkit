@@ -30,7 +30,8 @@ shifted a few times; `parse_qa.py` handles all the variants we've seen.
 ## Practical tips
 
 - Snapshot a baseline `qa.json` from the **unmodified default branch** before
-  starting a session of work. Save it at `.jira-cache/qa-baseline.json`.
+  starting a session of work. Save it at `$FHIR_JIRA_WORK_DIR/qa-baseline.json`
+  outside the target FHIR repo.
 - The publisher does not always write `qa.json` if it crashes early. Check
   the publisher's exit code first, then the file.
 - Some IGs write `qa.html` but not a full `qa.json`. If `qa.json` is missing
@@ -57,5 +58,5 @@ If the FHIR Core build writes its QA file somewhere other than
 `output/qa.json`, pass the actual path explicitly:
 
 ```bash
-parse_qa.py --current build/publish/qa.json --baseline .jira-cache/qa-baseline.json
+parse_qa.py --current build/publish/qa.json --baseline "$FHIR_JIRA_WORK_DIR/qa-baseline.json"
 ```

@@ -7,9 +7,9 @@ information messages, and broken links, plus a per-file breakdown of issues.
 
 Usage:
     parse_qa.py --current output/qa.json
-    parse_qa.py --current output/qa.json --baseline .jira-cache/qa-baseline.json
-    parse_qa.py --current output/qa.json --baseline .jira-cache/qa-baseline.json \\
-                --out .jira-cache/qa-delta.json
+    parse_qa.py --current output/qa.json --baseline /tmp/fhir-jira-work/HL7-fhir/qa-baseline.json
+    parse_qa.py --current output/qa.json --baseline /tmp/fhir-jira-work/HL7-fhir/qa-baseline.json \\
+                --out /tmp/fhir-jira-work/HL7-fhir/qa-delta.json
 
 Exit codes:
     0   QA is good (errors did not increase)

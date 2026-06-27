@@ -15,7 +15,7 @@ Usage:
     fetch_ticket.py FHIR-12345
     fetch_ticket.py FHIR-12345 FHIR-12346 FHIR-12347
     fetch_ticket.py --filter 24101
-    fetch_ticket.py FHIR-12345 --cache-dir /tmp/staging
+    fetch_ticket.py FHIR-12345 --cache-dir /tmp/fhir-jira-work/HL7-fhir
     fetch_ticket.py FHIR-12345 --dump-html   # save raw HTML for debugging
 
 Output format (cached at <cache-dir>/<KEY>.json):
@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import sys
 import urllib.error
@@ -53,7 +54,11 @@ from pathlib import Path
 from typing import Any
 
 JIRA_BASE = "https://jira.hl7.org"
-DEFAULT_CACHE_DIR = Path(".jira-cache")
+DEFAULT_CACHE_DIR = Path(
+    os.environ.get("FHIR_JIRA_STAGING")
+    or os.environ.get("FHIR_JIRA_WORK_DIR")
+    or "/tmp/fhir-jira-staging"
+)
 USER_AGENT = "Mozilla/5.0 (compatible; fhir-jira-toolkit/0.2)"
 _TICKET_KEY_RE = re.compile(r"^[A-Z]+-\d+$")
 _FILTER_ID_RE = re.compile(r"^\d+$")

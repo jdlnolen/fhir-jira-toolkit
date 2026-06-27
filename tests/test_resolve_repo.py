@@ -429,3 +429,18 @@ class TestLoadMap:
         result = resolve_repo.load_map()
         assert "specifications" in result
         assert result["version"] == 1
+
+    def test_loads_from_codex_plugin_root(self, tmp_path, sample_repo_map, monkeypatch):
+        """load_map() successfully reads from the CODEX_PLUGIN_ROOT shipped map."""
+        skills_dir = tmp_path / "skills" / "fhir-jira-workflow"
+        skills_dir.mkdir(parents=True)
+        (skills_dir / "repo-map.json").write_text(json.dumps(sample_repo_map))
+
+        monkeypatch.delenv("CLAUDE_PLUGIN_ROOT", raising=False)
+        monkeypatch.setenv("CODEX_PLUGIN_ROOT", str(tmp_path))
+        monkeypatch.setattr(resolve_repo, "USER_MAP", tmp_path / "no-user-map.json")
+        monkeypatch.setattr(resolve_repo, "PROJECT_MAP", tmp_path / "no-project-map.json")
+
+        result = resolve_repo.load_map()
+        assert "specifications" in result
+        assert result["version"] == 1

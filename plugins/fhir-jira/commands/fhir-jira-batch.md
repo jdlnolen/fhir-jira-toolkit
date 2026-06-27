@@ -1,5 +1,5 @@
 ---
-description: Resolve multiple HL7 FHIR JIRA tickets, possibly spanning multiple repos. Produces one PR per repo touched.
+description: Resolve multiple HL7 FHIR JIRA tickets, possibly spanning multiple repos. Produces one draft PR per repo touched.
 argument-hint: <filter-id|FHIR-NNNN,FHIR-NNNN,...>
 ---
 
@@ -14,7 +14,7 @@ sub-batch flow per repo.
 
 Key invariants:
 
-- **One PR per repository touched.** Never combine PRs across repos.
+- **One draft PR per repository touched.** Never combine PRs across repos.
 - **One commit per ticket** within a repo's PR. Reviewers cherry-pick.
 - Run the IG Publisher once per group (after all that group's edits) when
   the tickets touch disjoint files; run between tickets when they overlap.
