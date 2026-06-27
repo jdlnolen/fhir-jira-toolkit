@@ -247,7 +247,7 @@ marketplace, and install `fhir-jira`.
 Start a new thread before using the plugin:
 
 ```text
-Use fhir-jira-workflow to resolve FHIR-12345.
+@fhir-jira FHIR-12345
 ```
 
 ### Claude Code
@@ -284,7 +284,7 @@ appear and be enabled.
 Start a new Codex thread and ask for the installed skill:
 
 ```text
-Use the fhir-jira-workflow skill to run resolve_repo.py --list.
+Use @fhir-jira to run resolve_repo.py --list.
 ```
 
 If Codex does not pick up the plugin, restart Codex or run
@@ -411,7 +411,7 @@ Pick a low-stakes, already-resolved FHIR ticket.
 In Codex:
 
 ```text
-Use fhir-jira-workflow to resolve FHIR-XXXXX.
+@fhir-jira FHIR-XXXXX
 ```
 
 In Claude Code:

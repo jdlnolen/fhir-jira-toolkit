@@ -19,11 +19,14 @@ After installing the `fhir-jira` plugin from this marketplace:
   workflow. Groups tickets by target repo and produces **one draft PR per repo**
   touched, with one commit per ticket inside each.
 
-### Codex skill
+### Codex skills
 
-- **`fhir-jira-workflow`** — the procedural body. Auto-triggers when you
-  ask Codex or Claude to work on a FHIR JIRA ticket. In Codex, invoke it by
-  asking naturally or by selecting the installed plugin/skill with `@`.
+- **`fhir-jira`** — single-ticket entrypoint, equivalent to the Claude Code
+  `/fhir-jira` command.
+- **`fhir-jira-batch`** — batch entrypoint, equivalent to the Claude Code
+  `/fhir-jira-batch` command.
+- **`fhir-jira-workflow`** — the shared procedural body. Auto-triggers when
+  you ask Codex or Claude to work on a FHIR JIRA ticket.
 
 ### Helper scripts
 
@@ -61,7 +64,7 @@ After installing, start a new Codex thread and ask it to use the FHIR JIRA
 workflow:
 
 ```text
-Use fhir-jira-workflow to resolve FHIR-12345.
+@fhir-jira FHIR-12345
 ```
 
 ### Claude Code from GitHub
