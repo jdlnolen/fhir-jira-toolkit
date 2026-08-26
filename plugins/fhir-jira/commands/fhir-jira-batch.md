@@ -21,6 +21,9 @@ Key invariants:
 - If `resolve_repo.py --group` returns any `unresolved` tickets, **stop
   and surface them to the user** before proceeding. Ask whether to skip
   or to add a mapping in `~/.config/fhir-jira-toolkit/repo-map.json`.
+- For **FHIR Core** tickets, every modified resource must also get a
+  "Changes since 6.0.0-ballotN" `stu-note` entry in its
+  `<resource>-introduction.xml` (skill step 8a), committed with that ticket.
 - Surface a final cross-repo summary listing every PR opened with its URL.
 
 If the input looks like a number (e.g. `24101`), treat it as a JIRA filter

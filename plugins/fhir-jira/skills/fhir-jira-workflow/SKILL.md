@@ -193,6 +193,28 @@ Summary of where source files live (see the reference for full details):
   `input/pagecontent/<page>.md`. Check `sushi-config.yaml` and `ig.ini`
   for IG-specific settings. Never edit `fsh-generated/`.
 
+### 8a. Record the change in each resource's "Changes since ballot" note (FHIR Core)
+
+For **FHIR Core (`HL7/fhir`)** tickets, every resource you modified in step 8
+must also get an entry in its "Changes since 6.0.0-ballotN" note, so the change
+is visible on the published resource page. Add — or append to — the `stu-note`
+blockquote in `source/<resource>/<resource>-introduction.xml`:
+
+```xml
+<blockquote class="stu-note" style="background-color: lightblue">
+	<p><b>Changes since 6.0.0-ballotN:</b></p>
+	<ul>
+		<li><a href="https://jira.hl7.org/browse/FHIR-NNNNN">FHIR-NNNNN</a> - what changed</li>
+	</ul>
+</blockquote>
+```
+
+If the note already exists for the current ballot, add a new `<li>` to its `<ul>`
+rather than a second blockquote. See **"Record every change in the resource's
+'Changes since ballot' note"** in `references/fhir-authoring.md` for exact
+placement, how to determine the ballot number N, and the append-vs-create rule.
+This does **not** apply to IGs or the Extensions Pack — skip it for those repos.
+
 ### 9. Run the publisher
 
 Use the publisher command from step 2. **Two different build systems
@@ -399,11 +421,16 @@ git commit -F .jira-cache/FHIR-NNNN.commit.txt
 git push -u origin <branch>
 
 gh pr create \
+  --draft \
   --repo <github-slug-from-resolve_repo>  \
   --title "$(head -1 .jira-cache/FHIR-NNNN.commit.txt)" \
   --body-file .jira-cache/FHIR-NNNN.pr.md \
   --base <default-branch>
 ```
+
+Always open the PR as a **draft** (`--draft`). A human maintainer reviews
+and marks it ready / undrafts it after the WG/disposition check. Do not
+open non-draft PRs from this workflow.
 
 Use `git add` with explicit paths, never `-A`. The publisher generates
 many files under the repo's `build_dirs` (resolved in step 2) and those
@@ -491,7 +518,8 @@ flow — separate branch, separate commits, separate PR:
 3. Create one branch for the group: `fhir-batch-<repo-shortname>-<date>`.
 4. Per ticket: read context → confirm if non-trivial → edit → commit
    immediately with that ticket's synopsis. **One commit per ticket**, not
-   squashed.
+   squashed. For FHIR Core, include the resource's "Changes since ballot"
+   `stu-note` entry (step 8a) in that same commit.
 5. Run the publisher **once** at the end of the group's edits if the
    tickets touch disjoint files. If they touch the same file, run between
    tickets so you can localize errors.
@@ -500,7 +528,7 @@ flow — separate branch, separate commits, separate PR:
    mode. Skip it for now; it will be added in a follow-up.)
 7. Build `batch-synopses.json` from the per-ticket synopses you wrote.
 8. Format the aggregated PR body (`format_messages.py --batch ...`).
-9. Push and open the PR with `--repo <github_slug>`.
+9. Push and open the PR as a **draft** with `--repo <github_slug> --draft`.
 10. Watch CI.
 
 ### B4. Final cross-repo summary

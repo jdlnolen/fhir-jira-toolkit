@@ -28,5 +28,10 @@ link, or one-line clarification), **stop and confirm the edit plan with
 the user before writing**. Surface the disposition text and proposed
 change list first.
 
+For **FHIR Core** tickets, every resource you modify must also get an entry
+in its "Changes since 6.0.0-ballotN" note — the `stu-note` blockquote in
+`source/<resource>/<resource>-introduction.xml` (skill step 8a). Do not skip
+this; it is how the change surfaces on the published resource page.
+
 If CI fails, fetch the failed step logs with `gh run view --log-failed`
 and surface the failure to the user before attempting a fix.
