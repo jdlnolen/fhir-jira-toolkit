@@ -8,8 +8,9 @@
       "github": "HL7/fhir",
       "default_branch": "master",
       "publisher": "./gradlew publish",
-      "qa_path": "output/qa.json",
-      "build_dirs": ["output", "temp", "build", ".gradle"],
+      "_qa_comment": "FHIR Core's Gradle build produces NO qa.json; read the build log's 'Summary: Errors=N' line via parse_qa.py --build-log. Generated site is written to publish/.",
+      "qa_path": "",
+      "build_dirs": ["publish", "temp", "build", ".gradle"],
       "url_patterns": [
         "^https?://(www\\.)?hl7\\.org/fhir/(?!us/|uv/|cda/|extensions/)",
         "^https?://build\\.fhir\\.org/(?!ig/)"
