@@ -1,14 +1,27 @@
 #!/usr/bin/env python3
 """
-Parse the IG Publisher's qa.json and compute a delta against a baseline.
+Parse a publisher's QA output and compute a delta against a baseline.
 
-The IG Publisher writes output/qa.json with summary counts of errors, warnings,
-information messages, and broken links, plus a per-file breakdown of issues.
+Two input shapes are supported:
+
+- IG Publisher (IGs, Extensions Pack) — writes ``output/qa.json`` with summary
+  counts of errors, warnings, information messages, and broken links, plus a
+  per-file breakdown. Use ``--current`` / ``--baseline``.
+- FHIR Core (``HL7/fhir``) Gradle build — produces NO qa.json. Its validation
+  summary is a single line in the build log, e.g.
+  ``Summary: Errors=0, Warnings=3752, Information messages=374``.
+  Use ``--build-log`` / ``--baseline-log`` to read counts from that line.
 
 Usage:
+    # IG Publisher
     parse_qa.py --current output/qa.json
-    parse_qa.py --current output/qa.json --baseline .jira-cache/qa-baseline.json
     parse_qa.py --current output/qa.json --baseline .jira-cache/qa-baseline.json \\
+                --out .jira-cache/qa-delta.json
+
+    # FHIR Core Gradle build log
+    parse_qa.py --build-log .jira-cache/build.log
+    parse_qa.py --build-log .jira-cache/build.log \\
+                --baseline-log .jira-cache/build-baseline.log \\
                 --out .jira-cache/qa-delta.json
 
 Exit codes:
@@ -21,9 +34,42 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
+
+# Matches the FHIR Core Gradle build's validation summary line, e.g.
+# "Summary: Errors=0, Warnings=3752, Information messages=374"
+_LOG_SUMMARY_RE = re.compile(
+    r"Summary:\s*Errors\s*=\s*(\d+)\s*,\s*Warnings\s*=\s*(\d+)"
+    r"(?:\s*,\s*Information messages\s*=\s*(\d+))?",
+    re.IGNORECASE,
+)
+
+
+def counts_from_log(path: Path) -> dict[str, int]:
+    """Extract error/warning/info counts from a FHIR Core Gradle build log.
+
+    Uses the LAST ``Summary: Errors=..`` line in the file (the final build
+    summary). Broken-link counts are not reported on that line, so 0.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"build log not found: {path}")
+    text = path.read_text(errors="replace")
+    matches = list(_LOG_SUMMARY_RE.finditer(text))
+    if not matches:
+        raise ValueError(
+            f"no 'Summary: Errors=..' line found in build log: {path}. "
+            "Did the Gradle publish run to completion?"
+        )
+    m = matches[-1]
+    return {
+        "errors": _to_int(m.group(1)),
+        "warnings": _to_int(m.group(2)),
+        "info": _to_int(m.group(3)),
+        "broken_links": 0,
+    }
 
 
 def load_qa(path: Path) -> dict[str, Any]:
@@ -144,24 +190,50 @@ def render(report: dict[str, Any]) -> str:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--current", required=True, help="Path to current qa.json")
-    parser.add_argument("--baseline", help="Path to baseline qa.json")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--current", help="Path to current qa.json (IG Publisher)")
+    parser.add_argument("--baseline", help="Path to baseline qa.json (IG Publisher)")
+    parser.add_argument(
+        "--build-log",
+        help="Path to a FHIR Core Gradle build log; counts read from its "
+        "'Summary: Errors=..' line instead of a qa.json",
+    )
+    parser.add_argument(
+        "--baseline-log", help="Path to a baseline FHIR Core Gradle build log"
+    )
     parser.add_argument("--out", help="Path to write delta JSON")
     args = parser.parse_args(argv)
 
+    if bool(args.current) == bool(args.build_log):
+        print(
+            "Provide exactly one of --current (qa.json) or --build-log "
+            "(FHIR Core Gradle log).",
+            file=sys.stderr,
+        )
+        return 2
+
     try:
-        cur = counts(load_qa(Path(args.current)))
+        if args.build_log:
+            cur = counts_from_log(Path(args.build_log))
+        else:
+            cur = counts(load_qa(Path(args.current)))
     except Exception as e:
-        print(f"Failed to read current qa.json: {e}", file=sys.stderr)
+        print(f"Failed to read current QA input: {e}", file=sys.stderr)
         return 2
 
     base: dict[str, int] | None = None
-    if args.baseline:
-        base_path = Path(args.baseline)
+    baseline_src = args.baseline_log or args.baseline
+    if baseline_src:
+        base_path = Path(baseline_src)
         if base_path.exists():
             try:
-                base = counts(load_qa(base_path))
+                base = (
+                    counts_from_log(base_path)
+                    if args.baseline_log
+                    else counts(load_qa(base_path))
+                )
             except Exception as e:
                 print(f"Warning: failed to read baseline ({e}); proceeding without it", file=sys.stderr)
 

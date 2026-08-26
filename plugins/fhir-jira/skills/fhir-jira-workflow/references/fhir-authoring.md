@@ -429,14 +429,28 @@ Common codes: `F10` (10% Formalin), `BF10` (Buffered 10% formalin),
 
 ### Finding QA output
 
-| Build | Human-readable | Machine-readable |
-|---|---|---|
-| IG Publisher (IGs, Extensions Pack) | `output/qa.html` | `output/qa.json` |
-| FHIR Core Gradle | varies — run `find . -name qa.json -newer .git/HEAD` after first build | same path |
+| Build | Output dir | Error/warning counts | Feed to `parse_qa.py` with |
+|---|---|---|---|
+| IG Publisher (IGs, Extensions Pack) | `output/` | `output/qa.json` (+ `output/qa.html`) | `--current output/qa.json` |
+| FHIR Core Gradle | `publish/` | **no qa.json** — the build log's `Summary: Errors=N, Warnings=N, Information messages=N` line | `--build-log <log>` |
 
-After any edit, review `output/qa.html` for new validation errors before
-committing. The `parse_qa.py` script reads `qa.json`; `qa.html` is the
-human-friendly version for understanding what went wrong.
+**FHIR Core produces no `qa.json`.** The Gradle publish build writes the
+generated site to `publish/` (not `output/`), and its validation summary is a
+single line near the end of the build log:
+
+```
+Summary: Errors=0, Warnings=3752, Information messages=374
+```
+
+Capture the build log (e.g. `./gradlew publish | tee .jira-cache/build.log`)
+and read the counts with `parse_qa.py --build-log .jira-cache/build.log`. For a
+regression check, capture a baseline log on the unmodified default branch and
+pass `--baseline-log`. The `qa_path` field from `resolve_repo.py` is empty for
+FHIR Core for this reason — do not look for `output/qa.json`.
+
+For IGs and the Extensions Pack, review `output/qa.html` for new validation
+errors before committing; `parse_qa.py --current output/qa.json` reads the
+machine-readable form.
 
 ### Validation after FSH edits (IGs)
 
@@ -457,16 +471,17 @@ directory.
 
 | Published URL pattern | Local output path | Notes |
 |---|---|---|
-| `https://hl7.org/fhir/<page>.html` | Discovered: `find . -name '<page>.html' -path '*/output/*' -newer .git/HEAD 2>/dev/null` | FHIR Core Gradle — output location varies per build |
-| `https://build.fhir.org/<page>.html` | Same discovery pattern as above | FHIR Core CI mirror |
+| `https://hl7.org/fhir/<page>.html` | `publish/<page>.html` | FHIR Core Gradle — writes the generated site to `publish/` |
+| `https://build.fhir.org/<page>.html` | `publish/<page>.html` | FHIR Core CI mirror |
 | `https://hl7.org/fhir/extensions/<page>.html` | `output/<page>.html` | Extensions Pack (IG Publisher) |
 | `https://build.fhir.org/ig/HL7/fhir-extensions/<page>.html` | `output/<page>.html` | Extensions Pack CI mirror |
 | `https://hl7.org/fhir/us/core/<page>.html` | `output/<page>.html` | US Core IG (IG Publisher) |
 | `https://build.fhir.org/ig/HL7/<repo>/<page>.html` | `output/<page>.html` | Any IG (IG Publisher) |
 
-For FHIR Core, always use the `find` discovery pattern — the Gradle build's
-output directory structure is not fixed and may differ across builds. For
-IGs and the Extensions Pack, `output/<page>.html` is reliable.
+For FHIR Core, the Gradle build writes to `publish/<page>.html` (e.g.
+`publish/servicerequest.html`). If it isn't there, discover it with
+`find . -name '<page>.html' -path '*/publish/*' -newer .git/HEAD 2>/dev/null`.
+For IGs and the Extensions Pack, `output/<page>.html` is reliable.
 
 ### Source file to output page (fallback when no Related URL)
 

@@ -236,28 +236,47 @@ This step is slow — 5–30 min for FHIR core (Gradle build does a lot),
 typically faster for IGs. Stream output and do not start the next step
 until it exits. Capture the exit code.
 
+For **FHIR Core**, tee the build to a log so step 10 can read the
+`Summary: Errors=N` line (there is no `qa.json`):
+`./gradlew publish | tee .jira-cache/build.log`. The generated site is
+written to `publish/`, not `output/`.
+
 ### 10. Parse the QA delta
 
-Use the `qa_path` from step 2's resolved metadata:
+The two build systems report QA differently — pick the matching branch:
+
+**IG Publisher (Extensions Pack, IGs)** — reads `output/qa.json`:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/parse_qa.py \
-  --current <qa_path-from-resolve_repo> \
+  --current output/qa.json \
   --baseline .jira-cache/qa-baseline.json \
   --out .jira-cache/qa-delta.json
 ```
 
-For Extensions Pack and IGs this is `output/qa.json`. For FHIR Core the
-Gradle build's output location may differ from the IG Publisher's
-convention; if `--current` reports the file doesn't exist, do
-`find . -maxdepth 4 -name qa.json -newer .git/HEAD 2>/dev/null` to
-discover where Gradle actually wrote it, then update the repo-map
-override file (`~/.config/fhir-jira-toolkit/repo-map.json`) so future
-runs are correct.
+**FHIR Core (`HL7/fhir`)** — the Gradle build produces **no `qa.json`** (and
+`qa_path` from `resolve_repo.py` is empty). Its validation summary is a line
+in the build log: `Summary: Errors=N, Warnings=N, Information messages=N`.
+So capture the build log in step 9 (`./gradlew publish | tee
+.jira-cache/build.log`) and read counts from it:
 
-If `.jira-cache/qa-baseline.json` doesn't exist yet for this repo, snapshot
-the publisher's output **on the unmodified default branch** before step 8
-on the very first run in a session. Each repo has its own baseline.
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/parse_qa.py \
+  --build-log .jira-cache/build.log \
+  --baseline-log .jira-cache/build-baseline.log \
+  --out .jira-cache/qa-delta.json
+```
+
+The generated site lands in `publish/` (not `output/`) for FHIR Core.
+
+If the baseline (`qa-baseline.json` for IGs, `build-baseline.log` for FHIR Core)
+doesn't exist yet for this repo, snapshot the publisher's output **on the
+unmodified default branch** before step 8 on the very first run in a session.
+Each repo has its own baseline. A baseline requires a second full publisher run,
+so for a one-off single-ticket fix on FHIR Core it is acceptable to skip the
+baseline and instead confirm the branch build's `Summary:` line shows
+`Errors=0` (or no *new* errors referencing the edited resource) — note in the
+synopsis that no numeric delta was computed.
 
 While on the default branch with a fresh publisher build (the same moment
 you capture `qa-baseline.json`), also capture baseline HTML screenshots and
