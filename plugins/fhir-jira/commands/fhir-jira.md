@@ -17,11 +17,14 @@ Key flow:
 3. `cd` into that repo's local clone (ask the user if it doesn't exist;
    never auto-clone).
 4. Sync, branch, read context, edit.
-5. Run the IG Publisher and confirm `qa.json` errors did not increase.
-6. Generate the synopsis **after** the publisher run (must reflect final
+5. Run the repository's publisher and confirm validation errors did not
+   increase (FHIR Core uses its Gradle build log; IGs use `qa.json`).
+6. Verify the requested result in the generated specification and record a
+   ticket-specific published-output QA verdict.
+7. Generate the synopsis **after** the publisher and semantic QA pass (must reflect final
    state, including any fix-ups).
-7. Format the commit message and PR body via `scripts/format_messages.py`.
-8. Commit, push, open the PR with `gh pr create --repo <slug>`, watch CI.
+8. Format the commit message and PR body via `scripts/format_messages.py`.
+9. Commit, push, open the PR with `gh pr create --repo <slug>`, watch CI.
 
 If the ticket disposition is non-trivial (anything beyond a typo, broken
 link, or one-line clarification), **stop and confirm the edit plan with

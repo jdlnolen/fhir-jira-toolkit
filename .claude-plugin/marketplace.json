@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "End-to-end tooling for resolving HL7 FHIR JIRA tickets across the FHIR core specification, the Extensions Pack, and FHIR Implementation Guides.",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "plugins": [
     {

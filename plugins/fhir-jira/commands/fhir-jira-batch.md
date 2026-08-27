@@ -18,6 +18,9 @@ Key invariants:
 - **One commit per ticket** within a repo's PR. Reviewers cherry-pick.
 - Run the IG Publisher once per group (after all that group's edits) when
   the tickets touch disjoint files; run between tickets when they overlap.
+- After a clean publisher result, verify every ticket separately in the
+  generated specification and record one published-output QA verdict per
+  ticket. Do not replace this with a group-level spot check.
 - If `resolve_repo.py --group` returns any `unresolved` tickets, **stop
   and surface them to the user** before proceeding. Ask whether to skip
   or to add a mapping in `~/.config/fhir-jira-toolkit/repo-map.json`.

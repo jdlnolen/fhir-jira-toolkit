@@ -8,7 +8,7 @@ own IGs and adjust local clone paths. This doc explains how.
 
 Three locations, merged in this order (later wins for any given GitHub slug):
 
-1. **Shipped defaults**: `${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/repo-map.json`
+1. **Shipped defaults**: `${FHIR_JIRA_PLUGIN_ROOT}/skills/fhir-jira-workflow/repo-map.json`
    — don't edit this; updates from the plugin will overwrite it.
 2. **User-global override**: `~/.config/fhir-jira-toolkit/repo-map.json`
    — your personal settings, applies across all projects.
@@ -18,7 +18,8 @@ Three locations, merged in this order (later wins for any given GitHub slug):
 To inspect the merged result:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/resolve_repo.py --list
+FHIR_JIRA_PLUGIN_ROOT="${FHIR_JIRA_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}}"
+python3 "${FHIR_JIRA_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/resolve_repo.py" --list
 ```
 
 ## Schema
@@ -69,15 +70,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/resolve_repo.py 
   cross-check whether the configured publisher matches reality.
 - **`qa_path`** — relative path to the publisher's QA report. Optional;
   defaults to `output/qa.json` (the IG Publisher convention). FHIR Core's
-  Gradle build may write the file somewhere else (e.g.,
-  `build/publish/qa.json`); set this explicitly once you've confirmed
-  where Gradle puts it.
+  Gradle build does not produce `qa.json`; use an empty string and parse the
+  captured build log with `parse_qa.py --build-log`.
 - **`build_dirs`** — list of directory names (relative to repo root)
   that the publisher writes into. The skill uses this to (a) warn if you
   try to stage anything from one of them, and (b) suggest entries for
   `.git/info/exclude`. Optional; defaults to `["output", "temp"]`. The
-  IG Publisher also creates `input-cache/`. FHIR Core's Gradle build
-  uses `build/` and `.gradle/`.
+  IG Publisher also creates `input-cache/`. FHIR Core's Gradle build writes
+  the generated specification to `publish/` and also uses `temp/`, `build/`,
+  and `.gradle/`.
 - **`url_patterns`** — regex strings (Python `re` syntax). Used as fallback
   when the `Specification` field is missing or ambiguous. Match against
   any URL appearing in the ticket's `Related URL` field or description.
@@ -108,7 +109,8 @@ You don't need to repeat fields you're not overriding. To verify the
 mapping picks up correctly, fetch a ticket from that IG and run:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/resolve_repo.py \
+FHIR_JIRA_PLUGIN_ROOT="${FHIR_JIRA_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}}"
+python3 "${FHIR_JIRA_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/resolve_repo.py" \
   --ticket .jira-cache/FHIR-NNNN.json
 ```
 
