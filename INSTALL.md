@@ -1,17 +1,31 @@
 # Install instructions
 
-Claude Code's plugin system is **marketplace-based**. You add a marketplace
-(which can be a local directory), then install plugins from that
-marketplace. This bundle ships as a marketplace containing one plugin.
+Codex and Claude Code both install this repository as a marketplace. The
+repository ships one plugin, `fhir-jira`, with native metadata for both hosts:
+
+- Codex: `.agents/plugins/marketplace.json` and
+  `plugins/fhir-jira/.codex-plugin/plugin.json`
+- Claude Code: `.claude-plugin/marketplace.json` and
+  `plugins/fhir-jira/.claude-plugin/plugin.json`
 
 ## Step 0 — Prerequisites
 
-### Claude Code
+### Codex or Claude Code
 
-Recent enough that `/plugin marketplace` is a recognized command:
+At least one supported host must be installed. Check the host you plan to use:
 
 ```bash
+codex --version
 claude --version
+```
+
+For Codex, update through your normal Codex installation channel if
+`codex plugin` is unavailable.
+
+For Claude Code, use a version recent enough that `/plugin marketplace` is a
+recognized command:
+
+```text
 # If too old, update via your install method:
 #   npm:    npm install -g @anthropic-ai/claude-code
 #   brew:   brew upgrade claude
@@ -136,16 +150,25 @@ You only need clones for repos you'll actually work in.
 
 ## Step 1 — Add the marketplace
 
-### Option A — From GitHub (recommended)
+### Codex from GitHub
+
+```bash
+codex plugin marketplace add jdlnolen/fhir-jira-toolkit
+```
+
+Confirm it is registered:
+
+```bash
+codex plugin marketplace list
+```
+
+### Claude Code from GitHub
 
 Open Claude Code. In any conversation, run:
 
 ```
 /plugin marketplace add jdlnolen/fhir-jira-toolkit
 ```
-
-Replace `<owner>` with the GitHub org or username hosting the repo
-(e.g., `jdln/fhir-jira-toolkit`).
 
 Expected output:
 
@@ -159,31 +182,39 @@ Available plugins:
 Run /plugin install <name> to install
 ```
 
-### Option B — From a local clone
+### From a local clone
 
 If you prefer a local install, or GitHub is unreachable:
 
 ```bash
-git clone https://github.com/jdlnolen/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
+git clone https://github.com/jdlnolen/fhir-jira-toolkit.git /path/to/fhir-jira-toolkit
 ```
 
-Then in Claude Code:
+For Codex:
+
+```bash
+codex plugin marketplace add /path/to/fhir-jira-toolkit
+```
+
+For Claude Code:
 
 ```
-/plugin marketplace add ~/.claude/marketplaces/fhir-jira-toolkit
+/plugin marketplace add /path/to/fhir-jira-toolkit
 ```
 
 ### Troubleshooting
 
-- **`unknown command`** — your Claude Code is too old. Update with
+- **`unknown command`** — your selected host is too old. Update it and
+  restart the terminal. For Claude Code, update with
   `npm install -g @anthropic-ai/claude-code` (or your install method)
-  and restart your terminal.
-- **`marketplace.json not found`** — the path or repo is wrong. Check
-  that `.claude-plugin/marketplace.json` exists at the root.
+  if appropriate.
+- **`marketplace.json not found`** — the path or repo is wrong. Codex reads
+  `.agents/plugins/marketplace.json`; Claude Code reads
+  `.claude-plugin/marketplace.json`.
 - **`invalid marketplace.json`** — the file is malformed. Check for
   syntax errors.
 
-To confirm:
+To confirm in Claude Code:
 
 ```
 /plugin marketplace list
@@ -193,7 +224,15 @@ You should see `fhir-jira-toolkit` listed.
 
 ---
 
-## Step 3 — Install the plugin from the marketplace
+## Step 2 — Install the plugin from the marketplace
+
+### Codex
+
+```bash
+codex plugin add fhir-jira@fhir-jira-toolkit
+```
+
+### Claude Code
 
 ```
 /plugin install fhir-jira@fhir-jira-toolkit
@@ -220,7 +259,20 @@ appear and be enabled.
 
 ---
 
-## Step 4 — Verify the slash commands are available
+## Step 3 — Verify the plugin is available
+
+### Codex
+
+Start a new task so Codex loads the installed skills. Ask:
+
+```text
+Use the fhir-jira-workflow skill to run resolve_repo.py --list.
+```
+
+The installed skill list should include `fhir-jira`, `fhir-jira-batch`, and
+`fhir-jira-workflow`.
+
+### Claude Code
 
 In a chat, type `/` and look for autocomplete suggestions. You should see:
 
@@ -236,7 +288,7 @@ If they don't appear:
 
 ---
 
-## Step 5 — Configure your clone root (one-time)
+## Step 4 — Configure your clone root (one-time)
 
 The shipped repo map assumes HL7 clones live at `~/dev/hl7/<repo-name>`.
 If yours don't, set this once:
@@ -255,9 +307,9 @@ If `~/dev/hl7/` works for you, skip this step.
 
 ---
 
-## Step 6 — Verify repo resolution points where you think
+## Step 5 — Verify repo resolution points where you think
 
-Ask Claude to verify in a chat:
+Ask Codex or Claude Code to verify in a chat:
 
 ```
 Run resolve_repo.py --list and show me the results
@@ -266,7 +318,7 @@ Run resolve_repo.py --list and show me the results
 Or run the script directly (if you have a local clone):
 
 ```bash
-python3 ~/.claude/marketplaces/fhir-jira-toolkit/plugins/fhir-jira/skills/fhir-jira-workflow/scripts/resolve_repo.py --list
+python3 /path/to/fhir-jira-toolkit/plugins/fhir-jira/skills/fhir-jira-workflow/scripts/resolve_repo.py --list
 ```
 
 You should see the five shipped specs with their resolved local paths.
@@ -280,19 +332,19 @@ ask before doing anything in those repos.
 
 ---
 
-## Step 7 — Capture per-repo QA baselines (one-time per repo)
+## Step 6 — Capture per-repo QA baselines (one-time per repo)
 
-The skill compares each publisher run against a `qa-baseline.json` for
-that repo. Establish the baseline on a clean default branch **before**
-any ticket work in that repo:
+The skill compares each publisher run against a baseline for that repository.
+FHIR Core uses the Gradle build log; Extensions Pack and IGs use
+`output/qa.json`. Establish the matching baseline on a clean default branch
+**before** any ticket work:
 
 ```bash
 # FHIR Core
 cd ~/dev/hl7/fhir
 git checkout master && git pull
-./gradlew publish
 mkdir -p .jira-cache
-cp output/qa.json .jira-cache/qa-baseline.json   # adjust path if Gradle writes elsewhere
+./gradlew publish | tee .jira-cache/build-baseline.log
 
 # Extensions Pack or any IG
 cd ~/dev/hl7/US-Core              # or whichever
@@ -302,12 +354,12 @@ mkdir -p .jira-cache
 cp output/qa.json .jira-cache/qa-baseline.json
 ```
 
-If the FHIR Core Gradle build writes its QA report somewhere other than
-`output/qa.json` (it may be `build/publish/qa.json` or similar), adjust
-the `cp` source path accordingly. Run the build once and `find . -name qa.json`
-to locate it on first setup.
+FHIR Core does not produce `qa.json`; the workflow parses its
+`Summary: Errors=N, Warnings=N, Information messages=N` line from the build
+log. The published Core site is written to `publish/`.
 
-Repeat in every repo you'll touch. Each repo gets its own baseline.
+Repeat in every repo you will touch. Each repository gets its own matching
+baseline file.
 
 Add `.jira-cache/` to your global gitignore so it never leaks into commits:
 
@@ -322,9 +374,17 @@ just less informative.
 
 ---
 
-## Step 8 — Smoke test against a real ticket
+## Step 7 — Smoke test against a real ticket
 
-Pick a low-stakes, already-resolved FHIR ticket. In Claude Code:
+Pick a low-stakes, already-resolved FHIR ticket.
+
+In Codex, start a new task and ask:
+
+```text
+Use fhir-jira to resolve FHIR-XXXXX.
+```
+
+In Claude Code:
 
 ```
 /fhir-jira FHIR-XXXXX
@@ -340,7 +400,10 @@ Watch what happens:
    your approval. This is the right time to bail with "stop, I just
    wanted to verify the plumbing" if you don't actually want to make a PR.
 4. **Branch, edit, publisher.** Slow part (5–30 min for FHIR core).
-5. **Commit and PR.** Verify the PR body has the "What changed" synopsis,
+5. **Published-output QA.** Confirm the generated specification contains the
+   requested result in the correct context. FHIR Core output is in `publish/`;
+   IG output is in `output/`.
+6. **Commit and PR.** Verify the PR body has the "What changed" synopsis,
    the "Files touched" list, and the QA delta table. The commit message
    (not the PR body) carries the `Disposition:` and `Ticket:` trailers.
 
@@ -350,6 +413,17 @@ If anything goes wrong, the script outputs live in `<repo>/.jira-cache/`
 ---
 
 ## Updating the plugin
+
+### Codex
+
+```bash
+codex plugin marketplace upgrade fhir-jira-toolkit
+codex plugin add fhir-jira@fhir-jira-toolkit
+```
+
+Start a new Codex task after reinstalling.
+
+### Claude Code
 
 If you installed from GitHub, Claude Code pulls the latest version
 automatically when the marketplace is refreshed. To force a refresh:
@@ -361,7 +435,7 @@ automatically when the marketplace is refreshed. To force a refresh:
 If you installed from a local clone, pull the latest and reload:
 
 ```bash
-cd ~/.claude/marketplaces/fhir-jira-toolkit
+cd /path/to/fhir-jira-toolkit
 git pull
 ```
 
@@ -373,6 +447,14 @@ Then in Claude Code:
 
 ## Uninstalling
 
+### Codex
+
+```bash
+codex plugin marketplace remove fhir-jira-toolkit
+```
+
+### Claude Code
+
 ```
 /plugin uninstall fhir-jira@fhir-jira-toolkit
 /plugin marketplace remove fhir-jira-toolkit
@@ -381,7 +463,7 @@ Then in Claude Code:
 Optionally remove the local clone and config:
 
 ```bash
-rm -rf ~/.claude/marketplaces/fhir-jira-toolkit   # only if locally cloned
+rm -rf /path/to/fhir-jira-toolkit   # only if this path is a disposable local clone
 rm -rf ~/.config/fhir-jira-toolkit
 ```
 
@@ -392,15 +474,19 @@ want a clean slate.
 
 ## Troubleshooting
 
-**`/plugin marketplace add` says "unknown command".** Claude Code is too
-old. Update and restart your terminal.
+**A marketplace command says "unknown command".** The selected host is too
+old. Update it and restart your terminal.
+
+**Codex installs the plugin but the skills do not appear.** Start a new task.
+If they are still absent, run `codex plugin list` and confirm that
+`fhir-jira@fhir-jira-toolkit` is installed and enabled.
 
 **Marketplace registers, but `/plugin install fhir-jira@fhir-jira-toolkit`
 fails.** Run `/plugin marketplace list` and check the exact marketplace
 name — case sensitivity matters. The marketplace name is what's in
 `marketplace.json`'s top-level `name` field.
 
-**Plugin installs but slash commands don't appear.** Run `/reload-plugins`.
+**Claude Code installs the plugin but slash commands don't appear.** Run `/reload-plugins`.
 If still missing, run `/plugin` and check whether `fhir-jira` is enabled.
 
 **Fetched ticket JSON is missing expected fields** (e.g., empty
@@ -424,9 +510,9 @@ spec entry's `names` array in your override file.
 **`gh pr create` fails with auth errors.** Run `gh auth status`. Re-auth
 if needed: `gh auth refresh -s repo,workflow,read:org`.
 
-**Publisher runs but `output/qa.json` doesn't exist.** Publisher likely
-crashed mid-run. Look at its stdout for a stack trace. The skill won't
-proceed past this — it'll surface the missing file.
+**An IG Publisher run finishes but `output/qa.json` does not exist.** The
+publisher likely crashed mid-run. Look at stdout for a stack trace. For FHIR
+Core, this file is not expected; use the captured Gradle build log instead.
 
 **`local_exists: false` on a repo you actually have cloned.** The path
 the plugin computed isn't where your clone lives. Either move/symlink
@@ -438,7 +524,10 @@ that spec entry.
 ## What's installed where
 
 ```
-~/.claude/marketplaces/fhir-jira-toolkit/        ← the marketplace + plugin (read-only after install)
+<marketplace checkout>/                           ← marketplace + plugin source
+<marketplace checkout>/.agents/plugins/           ← Codex marketplace metadata
+<marketplace checkout>/.claude-plugin/            ← Claude Code marketplace metadata
+~/.codex/plugins/cache/                           ← Codex's plugin cache (don't touch)
 ~/.claude/plugins/cache/                          ← Claude Code's internal plugin cache (don't touch)
 ~/.config/fhir-jira-toolkit/repo-map.json         ← your repo-map overrides (edit freely)
 <each-repo>/.jira-cache/                          ← per-repo scratch (gitignored)

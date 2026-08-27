@@ -20,7 +20,7 @@ Resolution order:
     3. If still ambiguous, exit 2 and surface the candidates.
 
 Repo map locations (later wins for duplicate GitHub slugs):
-    1. ${CLAUDE_PLUGIN_ROOT}/skills/fhir-jira-workflow/repo-map.json (shipped)
+    1. <plugin-root>/skills/fhir-jira-workflow/repo-map.json (shipped)
     2. ~/.config/fhir-jira-toolkit/repo-map.json (user override)
     3. ./repo-map.local.json (project-local override)
 """
@@ -46,15 +46,21 @@ def _plugin_root() -> Path:
     """Locate the plugin root.
 
     Priority:
-      1. $CLAUDE_PLUGIN_ROOT (set by Claude Code at runtime)
-      2. Walk up from this file's location looking for .claude-plugin/plugin.json
+      1. $FHIR_JIRA_PLUGIN_ROOT (explicit cross-host override)
+      2. $PLUGIN_ROOT (set by Codex)
+      3. $CLAUDE_PLUGIN_ROOT (set by Claude Code and by Codex for compatibility)
+      4. Walk up from this file looking for either host's plugin manifest
     """
-    env = os.environ.get("CLAUDE_PLUGIN_ROOT")
-    if env:
-        return Path(env)
+    for env_name in ("FHIR_JIRA_PLUGIN_ROOT", "PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT"):
+        value = os.environ.get(env_name)
+        if value:
+            return Path(value)
     here = Path(__file__).resolve()
     for p in [here, *here.parents]:
-        if (p / ".claude-plugin" / "plugin.json").exists():
+        if any(
+            (p / host_dir / "plugin.json").exists()
+            for host_dir in (".codex-plugin", ".claude-plugin")
+        ):
             return p
     return here.parent.parent.parent.parent  # best effort
 

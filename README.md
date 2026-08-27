@@ -1,28 +1,30 @@
 # fhir-jira-toolkit
 
-A Claude Code marketplace containing the `fhir-jira` plugin — end-to-end
-tooling that takes HL7 FHIR JIRA tickets from "open" to "PR with green CI"
-across the base FHIR specification, the FHIR Extensions Pack, and FHIR
-Implementation Guides. Each spec lives in its own GitHub repository; the
-plugin auto-resolves which repo a ticket targets.
+A dual-host plugin marketplace for Codex and Claude Code. Its `fhir-jira`
+plugin takes HL7 FHIR JIRA tickets from "open" to "draft PR with green CI"
+across FHIR Core, the FHIR Extensions Pack, and FHIR Implementation Guides.
+Each specification lives in its own GitHub repository; the plugin resolves
+the target repository automatically.
 
 ## What you get
 
 After installing the `fhir-jira` plugin from this marketplace:
 
-### Slash commands
+### Claude Code slash commands
 
 - **`/fhir-jira FHIR-NNNN`** — single-ticket workflow. Auto-resolves
   whether the ticket is against `HL7/fhir`, `HL7/fhir-extensions`, or an
   IG, and operates in the right repo.
 - **`/fhir-jira-batch <filter-id|FHIR-NNNN,FHIR-NNNN,...>`** — batch
-  workflow. Groups tickets by target repo and produces **one PR per repo**
+  workflow. Groups tickets by target repo and produces **one draft PR per repo**
   touched, with one commit per ticket inside each.
 
-### Skill
+### Codex skills
 
-- **`fhir-jira-workflow`** — the procedural body. Auto-triggers when you
-  ask Claude to work on a FHIR JIRA ticket even outside the slash commands.
+- **`fhir-jira`** — the single-ticket entrypoint.
+- **`fhir-jira-batch`** — the multi-ticket/filter entrypoint.
+- **`fhir-jira-workflow`** — the shared procedural body. It can also
+  auto-trigger when you ask Codex or Claude Code to work on a FHIR JIRA ticket.
 
 ### Helper scripts
 
@@ -49,7 +51,20 @@ for the schema and how to add IGs.
 
 ## Installation
 
-### From GitHub (recommended)
+### Codex from GitHub
+
+```bash
+codex plugin marketplace add jdlnolen/fhir-jira-toolkit
+codex plugin add fhir-jira@fhir-jira-toolkit
+```
+
+Start a new Codex task, then ask naturally or invoke the installed skill:
+
+```text
+Use fhir-jira to resolve FHIR-12345.
+```
+
+### Claude Code from GitHub
 
 In Claude Code:
 
@@ -78,13 +93,20 @@ Then in a chat:
 If you prefer a local install (or are developing the plugin):
 
 ```bash
-git clone https://github.com/jdlnolen/fhir-jira-toolkit.git ~/.claude/marketplaces/fhir-jira-toolkit
+git clone https://github.com/jdlnolen/fhir-jira-toolkit.git /path/to/fhir-jira-toolkit
 ```
 
-Then in Claude Code:
+For Codex:
+
+```bash
+codex plugin marketplace add /path/to/fhir-jira-toolkit
+codex plugin add fhir-jira@fhir-jira-toolkit
+```
+
+For Claude Code:
 
 ```
-/plugin marketplace add ~/.claude/marketplaces/fhir-jira-toolkit
+/plugin marketplace add /path/to/fhir-jira-toolkit
 /plugin install fhir-jira@fhir-jira-toolkit
 ```
 
@@ -97,69 +119,69 @@ See `INSTALL.md` for the full step-by-step including prerequisites
 2. `resolve_repo.py` matches the ticket's `Specification` field (or, as
    a fallback, the URLs in its `Related URL` and description) against
    the repo map to determine which repo to operate in.
-3. Claude `cd`s into that repo, syncs, branches, and reads the disposition.
-4. Claude makes the edit. Non-trivial edits pause for user approval.
-5. The IG Publisher runs locally; `parse_qa.py` confirms errors did not
-   increase (per-repo baseline).
-6. Claude writes the synopsis (only after the publisher passes).
-7. `format_messages.py` produces the commit message and PR body.
-8. Claude commits, pushes, opens the PR via `gh`, and watches CI.
+3. The agent enters that repo, syncs, branches, and reads the disposition.
+4. The agent makes the edit. Non-trivial edits pause for user approval.
+5. The repository's publisher runs locally; `parse_qa.py` confirms errors did
+   not increase (FHIR Core uses its Gradle log; IGs use `qa.json`).
+6. The agent verifies each ticket in the generated specification and records a
+   published-output QA verdict.
+7. The agent writes the synopsis only after both gates pass.
+8. `format_messages.py` produces the commit message and PR body.
+9. The agent commits, pushes, opens a draft PR via `gh`, and watches CI.
 
 For batch mode with tickets spanning multiple repos, this whole flow runs
 once per repo, and a final summary lists every PR opened.
 
-## HTML verification (optional)
+## Published-output QA (required)
 
-After the publisher runs, the workflow can use the **Playwright MCP plugin**
-to render the published HTML and verify that the intended change actually
-appears in the output. This catches mechanical failures — wrong file edited,
-publisher caching issues, stale build — that the QA error-count check alone
-would miss.
+After publisher validation succeeds, the workflow verifies every ticket
+against the generated specification. This is a separate semantic gate: a clean
+error count does not prove that the requested change reached the right page,
+uses the right code or reference, or is appropriate in its published context.
 
 ### How it works
 
-1. On the first run per session, while still on the default branch with a
-   fresh publisher build, the workflow captures **baseline** screenshots and
-   accessibility snapshots of the page(s) referenced by the ticket.
-2. After the edit and publisher re-run on the feature branch, it captures
-   the **current** output of the same pages.
-3. Claude compares the two, checking whether the ticket's intended change
-   is visible and no visual regressions were introduced.
-4. If the check fails, Claude stops and asks whether to fix or override.
+1. The agent converts each ticket disposition into an expected-result
+   checklist.
+2. It locates the generated artifact under `publish/` for FHIR Core or
+   `output/` for the Extensions Pack and IGs.
+3. It checks the requested content or behavior, its placement and context,
+   removed content, and relevant links or FHIR references.
+4. It records one `PASS` or `FAIL` verdict per ticket under
+   `.jira-cache/published-qa/`.
+5. A failure returns to editing and publisher validation unless the user
+   explicitly accepts the documented risk.
 
 ### Prerequisites
 
-Install the Playwright plugin in Claude Code (it's a separate plugin from
-the official marketplace — `fhir-jira` does not install it automatically):
+Browser automation adds rendered-page, visual, and link evidence when the
+active host provides it. For Claude Code, install the separate Playwright
+plugin from Anthropic's official marketplace:
 
 ```
 /plugin install playwright@claude-plugins-official
 ```
 
-No other setup is needed.
-
-If the Playwright plugin is **not installed**, the HTML verification steps
-are skipped automatically and the rest of the workflow proceeds as usual.
+If compatible browser tools are unavailable, the agent reads and searches the
+generated HTML/XML/JSON directly. The semantic QA step is not skipped.
 
 ### What gets verified
 
 - The ticket's `Related URL` is mapped to the local publisher output path
   (see `references/fhir-authoring.md` for the mapping tables).
-- Both a visual screenshot and a structured accessibility snapshot are
-  captured for before/after comparison.
-- Artifacts are stored in `.jira-cache/html-verify/` (baseline, current,
-  and a verdict summary).
+- The requested text, code, value, reference, or behavior is present.
+- The result appears on the correct page and is appropriate in context.
+- Replaced content is absent and relevant links/references resolve.
+- Written verdicts are stored in `.jira-cache/published-qa/`; screenshots and
+  accessibility snapshots are optional supporting evidence.
 
 ### Limitations
 
-- **Advisory, not a hard gate.** The user can always override a failed
-  check. The QA error-count check (`parse_qa.py`) remains the primary
-  automated gate.
-- **Same-session judgment.** The same Claude instance that made the edit
+- **Same-session judgment.** The same agent instance that made the edit
   also judges the output. It catches mechanical errors reliably, but may
   miss semantic misinterpretations of the ticket.
-- **Single-ticket only.** Batch mode (`/fhir-jira-batch`) does not yet
-  include HTML verification; it will be added in a follow-up.
+- **Explicit override only.** A failed verdict blocks synopsis and PR creation
+  unless the user reviews the evidence and accepts the risk.
 
 ## Synopsis discipline
 
@@ -193,7 +215,7 @@ Edit `~/.config/fhir-jira-toolkit/repo-map.json`:
 }
 ```
 
-Verify by asking Claude in a chat: `Run resolve_repo.py --list`
+Verify by asking Codex or Claude Code: `Run resolve_repo.py --list`
 
 Full schema: `plugins/fhir-jira/skills/fhir-jira-workflow/references/repo-map.md`.
 
@@ -205,7 +227,8 @@ Full schema: `plugins/fhir-jira/skills/fhir-jira-workflow/references/repo-map.md
 - Support a different publisher (non-HL7): add a per-spec entry in the
   repo map with a custom `publisher` field.
 
-After local edits, reload the plugin:
+After local edits, refresh the host. Start a new Codex task after reinstalling;
+in Claude Code run:
 
 ```
 /reload-plugins
@@ -281,20 +304,26 @@ project-level concerns.
 
 ```
 fhir-jira-toolkit/                                  ← marketplace root
+├── .agents/plugins/
+│   └── marketplace.json                            ← Codex marketplace
 ├── .claude-plugin/
-│   └── marketplace.json                            ← lists the plugin
+│   └── marketplace.json                            ← Claude Code marketplace
 ├── README.md
 ├── INSTALL.md
 └── plugins/
     └── fhir-jira/                                  ← the plugin
         ├── .claude-plugin/
-        │   └── plugin.json
+        │   └── plugin.json                          ← Claude Code manifest
+        ├── .codex-plugin/
+        │   └── plugin.json                          ← Codex manifest
         ├── commands/
         │   ├── fhir-jira.md
         │   └── fhir-jira-batch.md
         ├── hooks/
         │   └── check-update.py                     ← session-start update check
         └── skills/
+            ├── fhir-jira/                           ← Codex entrypoint
+            ├── fhir-jira-batch/                     ← Codex batch entrypoint
             └── fhir-jira-workflow/
                 ├── SKILL.md
                 ├── repo-map.json

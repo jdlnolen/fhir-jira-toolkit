@@ -392,6 +392,20 @@ class TestMainGroup:
 
 
 class TestLoadMap:
+    @pytest.mark.parametrize(
+        "env_name",
+        ["FHIR_JIRA_PLUGIN_ROOT", "PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT"],
+    )
+    def test_plugin_root_supports_each_host_variable(
+        self, tmp_path, monkeypatch, env_name
+    ):
+        """The resolver accepts the shared, Codex, and Claude root variables."""
+        for name in ("FHIR_JIRA_PLUGIN_ROOT", "PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT"):
+            monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv(env_name, str(tmp_path))
+
+        assert resolve_repo._plugin_root() == tmp_path
+
     def test_raises_file_not_found_when_repo_map_missing(self, tmp_path, monkeypatch):
         """FileNotFoundError is raised when no repo-map.json can be located.
 
@@ -416,12 +430,12 @@ class TestLoadMap:
                 resolve_repo.load_map()
 
     def test_loads_from_shipped_location(self, tmp_path, sample_repo_map, monkeypatch):
-        """load_map() successfully reads from the CLAUDE_PLUGIN_ROOT shipped map."""
+        """load_map() successfully reads from the host-provided plugin root."""
         skills_dir = tmp_path / "skills" / "fhir-jira-workflow"
         skills_dir.mkdir(parents=True)
         (skills_dir / "repo-map.json").write_text(json.dumps(sample_repo_map))
 
-        monkeypatch.setenv("CLAUDE_PLUGIN_ROOT", str(tmp_path))
+        monkeypatch.setenv("FHIR_JIRA_PLUGIN_ROOT", str(tmp_path))
         monkeypatch.setattr(resolve_repo, "USER_MAP", tmp_path / "no-user-map.json")
         monkeypatch.setattr(resolve_repo, "PROJECT_MAP", tmp_path / "no-project-map.json")
         monkeypatch.setattr(resolve_repo, "_plugin_root", lambda: tmp_path)
