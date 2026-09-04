@@ -120,7 +120,10 @@ See `INSTALL.md` for the full step-by-step including prerequisites
    a fallback, the URLs in its `Related URL` and description) against
    the repo map to determine which repo to operate in.
 3. The agent enters that repo, syncs, branches, and reads the disposition.
-4. The agent makes the edit. Non-trivial edits pause for user approval.
+4. The agent makes the edit. For FHIR Core, it also records the ticket under
+   the JIRA `Change Impact` category in each affected resource's Note to
+   Balloters and audits the note's overview and module-page links. Non-trivial
+   edits pause for user approval.
 5. The repository's publisher runs locally; `parse_qa.py` confirms errors did
    not increase (FHIR Core uses its Gradle log; IGs use `qa.json`).
 6. The agent verifies each ticket in the generated specification and records a
@@ -172,6 +175,9 @@ generated HTML/XML/JSON directly. The semantic QA step is not skipped.
 - The requested text, code, value, reference, or behavior is present.
 - The result appears on the correct page and is appropriate in context.
 - Replaced content is absent and relevant links/references resolve.
+- For FHIR Core, the resource's Note to Balloters contains the ticket exactly
+  once under its JIRA `Change Impact` category; its overview covers the
+  affected surface and evidence-backed module-page links resolve.
 - Written verdicts are stored in `.jira-cache/published-qa/`; screenshots and
   accessibility snapshots are optional supporting evidence.
 
@@ -191,7 +197,8 @@ clean. The skill explicitly prohibits paraphrasing the disposition — the
 disposition is what *should* happen; the synopsis is what *did* happen.
 
 Batch PRs get one synopsis per ticket, with one commit per ticket — never
-squashed — so reviewers can cherry-pick or revert individually.
+squashed — so reviewers can cherry-pick or revert individually. For FHIR Core,
+that ticket commit also includes its categorized resource-page ballot impact.
 
 ## Adding an IG to the repo map
 

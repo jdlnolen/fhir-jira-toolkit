@@ -92,3 +92,34 @@ def test_published_output_qa_is_required_for_single_and_batch_flows() -> None:
     assert "do not substitute one group-level spot check" in workflow
     assert "published-output QA verdict" in single
     assert "one published-output QA verdict per" in batch
+
+
+def test_fhir_core_changes_require_categorized_ballot_impact_notes() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    authoring = (
+        PLUGIN
+        / "skills"
+        / "fhir-jira-workflow"
+        / "references"
+        / "fhir-authoring.md"
+    ).read_text(encoding="utf-8")
+    jira_fields = (
+        PLUGIN
+        / "skills"
+        / "fhir-jira-workflow"
+        / "references"
+        / "jira-fields.md"
+    ).read_text(encoding="utf-8")
+
+    for text in (workflow, authoring, jira_fields):
+        assert "Change Impact" in text
+        assert "Non-compatible" in text
+        assert "Compatible substantive" in text
+        assert "Non-substantive" in text
+
+    assert "module cross-reference" in workflow
+    assert "appears exactly once" in authoring
+    assert "do not create a parallel `stu-note`" in workflow
+    assert "Do not create a parallel `stu-note`" in authoring
