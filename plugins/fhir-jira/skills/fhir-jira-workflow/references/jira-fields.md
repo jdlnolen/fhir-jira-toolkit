@@ -25,6 +25,7 @@ which also works without auth for publicly-shared filters.
     "Related URL": "https://hl7.org/fhir/observation.html",
     "Related Artifact(s)": "Observation",
     "Resolution Description": "Authoritative disposition narrative",
+    "Change Impact": "Compatible, substantive",
     "Work Group": "Patient Care"
   },
   "fetched_at": "2026-05-12T16:00:00Z"
@@ -75,6 +76,21 @@ The `resolution` value tells you the disposition class:
 
 You should only implement **Persuasive** and **Persuasive with Modification**
 tickets. If the resolution is anything else, stop and confirm with the user.
+
+## Ballot impact classification
+
+For FHIR Core resource changes, `fields["Change Impact"]` determines where
+the ticket is documented in the resource page's categorized Note to Balloters:
+
+- `Non-compatible` -> **Non-compatible**
+- `Compatible, substantive` or `Compatible substantive` ->
+  **Compatible substantive**
+- `Non-substantive` -> **Non-substantive**
+
+Treat this custom field as the primary classification. When it is absent, an
+obvious technical correction may be classified from the actual change and
+ticket type, with the basis captured in the published-output QA verdict. Stop
+and ask the user when the impact is ambiguous.
 
 ## Filter resolution
 

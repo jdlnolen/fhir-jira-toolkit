@@ -335,61 +335,77 @@ type `canonical`. When working on such a ticket: update the StructureDefinition
 AND the search parameters. The `canonical` type maps to search type `token`,
 not `reference`.
 
-### Record every change in the resource's "Changes since ballot" note (FHIR Core)
+### Record every change in the resource's categorized ballot note (FHIR Core)
 
 Applies to **FHIR Core (`HL7/fhir`) only.** IGs and the Extensions Pack have
 their own change-log conventions; this pattern does not apply to them.
 
 Whenever a ticket modifies a FHIR Core resource — its StructureDefinition,
-search parameters, notes, examples, or narrative — you must also record that
-change in the resource's **"Changes since 6.0.0-ballotN"** note so it appears on
-the published resource page (e.g.
-`https://build.fhir.org/deviceassociation.html#11.3`). Do this for **every
-resource the ticket touches**, as part of the same edit — not as a follow-up.
+search parameters, notes, examples, or narrative — record the effect in the
+resource's categorized **Note to Balloters** so it appears on the published
+resource page. Do this for **every resource the ticket touches**, in the same
+ticket commit.
 
-**Location**: `source/<resource>/<resource>-introduction.xml`, near the top of
-the file — after any `<blockquote class="ballot-note">` and immediately before
-the `<a name="bnc"></a>` anchor / `<h2>Scope and Usage</h2>` heading.
+**Location and structure:** edit the existing
+`source/<resource>/<resource>-introduction.xml`
+`<blockquote class="ballot-note" id="bn1">` near the top of the file. A
+typical resource note contains:
 
-**The note is a single `stu-note` blockquote with one `<li>` per ticket:**
+1. an opening paragraph summarizing the resource surfaces changed in the ballot;
+2. a paragraph linking relevant module pages and directing reviewers to related
+   module-page ballot content;
+3. categorized lists headed `Non-compatible`, `Compatible substantive`,
+   and `Non-substantive`.
+
+Add one concise `<li>` per ticket to the matching list, with the JIRA link at
+the end:
 
 ```xml
-<blockquote class="stu-note" style="background-color: lightblue">
-	<p><b>Changes since 6.0.0-ballotN:</b></p>
-	<ul>
-		<li><a href="https://jira.hl7.org/browse/FHIR-NNNNN">FHIR-NNNNN</a> - short description of what changed</li>
-	</ul>
-</blockquote>
+<p><b>Non-substantive</b></p>
+<ul>
+  <li>Corrected the malformed <code>Observation.component.code</code> reference in <code>Specimen.collection.fastingStatus[x]</code> guidance <a href="https://jira.hl7.org/browse/FHIR-NNNNN">FHIR-NNNNN</a></li>
+</ul>
 ```
 
-**Append vs. create:**
+**Impact classification:**
 
-- If the resource's introduction already has a `Changes since 6.0.0-ballotN`
-  blockquote for the current ballot, **add a new `<li>`** to its existing `<ul>`.
-  Do not create a second blockquote.
-- If it has none, **create** the blockquote in the location described above.
+- Treat cached `fields["Change Impact"]` as authoritative.
+- Map `Non-compatible` to **Non-compatible**.
+- Map `Compatible, substantive` or `Compatible substantive` to
+  **Compatible substantive**.
+- Map `Non-substantive` to **Non-substantive**.
+- If Change Impact is absent, use the actual change and ticket type to classify
+  an obvious technical correction, and state that basis in the published-output
+  QA verdict. Do not silently guess a genuinely ambiguous impact; ask the user.
 
-**Determining N (the ballot number):** N is the most recently *published*
-ballot, which is **not** necessarily the `version` in `publish.ini` (the
-in-development version is often one ahead). Match what the rest of the repo
-already uses:
+**Overview and module context:**
 
-```bash
-grep -rho 'Changes since 6\.0\.0-ballot[0-9]*' source | sort -u
-```
+- Update the opening paragraph when the ticket changes a surface that the
+  existing overview does not mention, such as examples, terminology, search
+  parameters, or an element definition.
+- Preserve existing module links. If none exists, search the local Core source
+  for evidence that the resource is referenced from a module page and add the
+  relevant link only when that relationship is established. Do not infer a
+  module from the resource name alone.
+- Keep the ballot note review-oriented: identify the observable effect and any
+  cross-resource or module implication without copying the ticket title.
 
-Use the value other resources use. If the grep returns nothing, or more than one
-value, **ask the user** which ballot number applies — do not guess.
+**Existing-note and duplicate rules:**
 
-**Description text:** one concise phrase describing the substantive change, in
-spec-author voice — mirror the ticket's disposition rather than copying its
-title verbatim. Example: `Binding relationship-status, relationship, and
-status-reason valuesets to THO equivalent code systems`.
+- Add to the existing category list; do not create a second ballot note.
+- Do not create a parallel `stu-note` or "Changes since ballot" block when a
+  categorized ballot note exists.
+- If prior work created such a parallel note for the same ticket, migrate its
+  content into the categorized ballot note and remove the duplicate.
+- If the resource has no categorized ballot note, inspect peer resource pages
+  and the current branch convention. Create a matching current-ballot note only
+  when the convention and ballot identifier are unambiguous; otherwise ask.
 
-**Do not touch the neighbouring `ballot-note` blockquote.** The categorised
-`<blockquote class="ballot-note">` (Non-compatible / Compatible substantive /
-Non-substantive lists) is maintained separately by WG editors. Only add your
-`stu-note` entry; leave the `ballot-note` structure alone.
+**Published-output QA:** after the publisher runs, verify on the generated
+resource page that the ticket appears exactly once, under the correct impact
+heading, with the intended JIRA link. Verify the overview reflects any newly
+affected surface and relevant module links resolve. Record these observations
+in that ticket's written QA verdict.
 
 ---
 

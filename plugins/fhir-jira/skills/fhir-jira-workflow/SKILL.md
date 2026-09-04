@@ -211,27 +211,34 @@ Summary of where source files live (see the reference for full details):
   `input/pagecontent/<page>.md`. Check `sushi-config.yaml` and `ig.ini`
   for IG-specific settings. Never edit `fsh-generated/`.
 
-### 8a. Record the change in each resource's "Changes since ballot" note (FHIR Core)
+### 8a. Record the classified JIRA impact in each resource's ballot note (FHIR Core)
 
-For **FHIR Core (`HL7/fhir`)** tickets, every resource you modified in step 8
-must also get an entry in its "Changes since 6.0.0-ballotN" note, so the change
-is visible on the published resource page. Add — or append to — the `stu-note`
-blockquote in `source/<resource>/<resource>-introduction.xml`:
+For **FHIR Core (`HL7/fhir`)** tickets, every resource modified in step 8
+must also describe the ticket's impact in the categorized **Note to Balloters**
+on its published resource page. Read `fields["Change Impact"]` from the
+cached ticket and add one concise, spec-author-voice `<li>` to the matching
+`Non-compatible`, `Compatible substantive`, or `Non-substantive` list in
+`source/<resource>/<resource>-introduction.xml`.
 
-```xml
-<blockquote class="stu-note" style="background-color: lightblue">
-	<p><b>Changes since 6.0.0-ballotN:</b></p>
-	<ul>
-		<li><a href="https://jira.hl7.org/browse/FHIR-NNNNN">FHIR-NNNNN</a> - what changed</li>
-	</ul>
-</blockquote>
-```
+Use the JIRA field as the primary classification. Normalize
+`Compatible, substantive` to the page heading `Compatible substantive`.
+If Change Impact is absent, classify an obvious technical correction from the
+actual change and ticket type and record that basis in the QA verdict; if the
+impact is genuinely ambiguous, stop and ask the user.
 
-If the note already exists for the current ballot, add a new `<li>` to its `<ul>`
-rather than a second blockquote. See **"Record every change in the resource's
-'Changes since ballot' note"** in `references/fhir-authoring.md` for exact
-placement, how to determine the ballot number N, and the append-vs-create rule.
-This does **not** apply to IGs or the Extensions Pack — skip it for those repos.
+Also audit the ballot-note overview and module cross-reference paragraphs:
+
+- update the opening overview when the ticket affects a resource surface not
+  already represented there;
+- preserve or add links to relevant module pages only when local repository
+  evidence establishes that relationship; never guess a module;
+- do not create a parallel `stu-note` or duplicate ticket entry when the
+  categorized ballot note exists.
+
+See **"Record every change in the resource's categorized ballot note"** in
+`references/fhir-authoring.md` for the exact markup, classification rules,
+fallback behavior, and published-output QA requirements. This does **not**
+apply to IGs or the Extensions Pack.
 
 ### 9. Run the publisher
 
@@ -478,8 +485,8 @@ flow — separate branch, separate commits, separate PR:
 3. Create one branch for the group: `fhir-batch-<repo-shortname>-<date>`.
 4. Per ticket: read context → confirm if non-trivial → edit → commit
    immediately with that ticket's synopsis. **One commit per ticket**, not
-   squashed. For FHIR Core, include the resource's "Changes since ballot"
-   `stu-note` entry (step 8a) in that same commit.
+   squashed. For FHIR Core, include the resource's categorized ballot-impact
+   entry (step 8a) in that same commit.
 5. Run the publisher **once** at the end of the group's edits if the
    tickets touch disjoint files. If they touch the same file, run between
    tickets so you can localize errors.
