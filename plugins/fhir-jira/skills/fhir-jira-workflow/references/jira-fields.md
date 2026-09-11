@@ -77,20 +77,17 @@ The `resolution` value tells you the disposition class:
 You should only implement **Persuasive** and **Persuasive with Modification**
 tickets. If the resolution is anything else, stop and confirm with the user.
 
-## Ballot impact classification
+## Change Impact and release-note labels
 
-For FHIR Core resource changes, `fields["Change Impact"]` determines where
-the ticket is documented in the resource page's categorized Note to Balloters:
+`fields["Change Impact"]` records whether the change is non-compatible,
+compatible substantive, or non-substantive. It may inform the synopsis and
+review discussion, but it does **not** identify the release-note cycle or page
+heading.
 
-- `Non-compatible` -> **Non-compatible**
-- `Compatible, substantive` or `Compatible substantive` ->
-  **Compatible substantive**
-- `Non-substantive` -> **Non-substantive**
-
-Treat this custom field as the primary classification. When it is absent, an
-obvious technical correction may be classified from the actual change and
-ticket type, with the basis captured in the published-output QA verdict. Stop
-and ask the user when the impact is ambiguous.
+Before changing a FHIR Core resource, ask the user to confirm the exact
+release-note heading or label, such as **Changes since 6.0.0-ballot5**. If the
+request already provides the exact label, use it without asking again. Do not
+place new work in a historical Note to Balloters based on Change Impact.
 
 ## Filter resolution
 

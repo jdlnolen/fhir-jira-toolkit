@@ -94,10 +94,13 @@ def test_published_output_qa_is_required_for_single_and_batch_flows() -> None:
     assert "one published-output QA verdict per" in batch
 
 
-def test_fhir_core_changes_require_categorized_ballot_impact_notes() -> None:
+def test_fhir_core_changes_require_user_confirmed_release_note_labels() -> None:
     workflow = (
         PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
     ).read_text(encoding="utf-8")
+    batch = (PLUGIN / "skills" / "fhir-jira-batch" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
     authoring = (
         PLUGIN
         / "skills"
@@ -113,13 +116,17 @@ def test_fhir_core_changes_require_categorized_ballot_impact_notes() -> None:
         / "jira-fields.md"
     ).read_text(encoding="utf-8")
 
-    for text in (workflow, authoring, jira_fields):
+    for text in (workflow, batch, authoring, jira_fields):
+        assert "release-note heading or label" in text
         assert "Change Impact" in text
-        assert "Non-compatible" in text
-        assert "Compatible substantive" in text
-        assert "Non-substantive" in text
 
-    assert "module cross-reference" in workflow
+    for text in (workflow, authoring, jira_fields):
+        assert "Changes since 6.0.0-ballot5" in text
+        assert "without asking again" in text
+
+    assert "This confirmation is" in workflow
+    assert "required before step 8" in workflow
+    assert "Do not infer the release-note cycle" in authoring
     assert "appears exactly once" in authoring
-    assert "do not create a parallel `stu-note`" in workflow
-    assert "Do not create a parallel `stu-note`" in authoring
+    assert "historical ballot note did" in authoring
+    assert "not absorb the new entry" in authoring
