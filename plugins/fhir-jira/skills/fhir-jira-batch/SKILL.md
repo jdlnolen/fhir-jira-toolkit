@@ -18,8 +18,16 @@ each repository.
 Keep these invariants:
 
 - Open one draft PR per repository touched.
+- Before editing any FHIR Core resource, ask the user to confirm the exact
+  release-note heading or label unless the current request already supplies
+  it. Ask once when one label applies to the whole batch; otherwise request a
+  resource-to-label mapping. Do not infer the label from JIRA Change Impact.
 - Create one commit per ticket within each repository PR.
 - Run the publisher once after disjoint edits, or between overlapping edits.
+- After every publisher run, stage every tracked file it changes with the
+  intentional edits, including unexpected or cross-resource source updates.
+  Never restore or omit one to narrow the diff; exclude only untracked
+  generated artifacts in configured build directories.
 - After a clean publisher result, verify each ticket separately in the
   generated specification and record one published-output QA verdict per
   ticket. A group-level spot check is not sufficient.

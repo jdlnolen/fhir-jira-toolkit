@@ -124,8 +124,10 @@ Read the output. You now have:
   `./_updatePublisher.sh && ./_genonce.sh` for the Extensions Pack and IGs (IG Publisher)
 - `qa_path` — where the publisher writes its QA report (usually
   `output/qa.json`; may differ for Gradle builds)
-- `build_dirs` — directories the publisher writes into and that must
-  never be staged for commit (e.g., `output/`, `temp/`, `build/`, `.gradle/`)
+- `build_dirs` — directories that normally contain untracked publisher output
+  and caches (e.g., `output/`, `temp/`, `build/`, `.gradle/`). Do not stage
+  untracked generated artifacts from them. This exclusion never authorizes
+  discarding a tracked file changed by the publisher.
 - `github` — the `org/repo` for `gh pr create`
 
 If `local_exists` is `false`, stop and ask the user.
@@ -178,6 +180,20 @@ Before editing, read:
 
 ### 7. Decide whether to confirm the plan
 
+Before deciding whether the implementation itself needs confirmation, handle
+the release-note label for any **FHIR Core resource** ticket. Inspect each
+affected `source/<resource>/<resource>-introduction.xml`, then ask the user to
+confirm the exact release-note heading or label under which this work should
+be recorded, for example **Changes since 6.0.0-ballot5**. This confirmation is
+required before step 8 even for a trivial ticket. If the current request
+already gives an exact label, record it and continue without asking again. Do
+not infer the label from `fields["Change Impact"]` or add new work to a
+historical Note to Balloters merely because that block already exists.
+
+For a batch whose tickets share one release-note label, ask once and enumerate
+the affected resources. If labels may differ, ask for the mapping before
+editing.
+
 If the ticket is non-trivial — anything beyond:
 
 - Typo / grammar fix
@@ -211,27 +227,23 @@ Summary of where source files live (see the reference for full details):
   `input/pagecontent/<page>.md`. Check `sushi-config.yaml` and `ig.ini`
   for IG-specific settings. Never edit `fsh-generated/`.
 
-### 8a. Record the change in each resource's "Changes since ballot" note (FHIR Core)
+### 8a. Record the JIRA change under the confirmed release-note label (FHIR Core)
 
-For **FHIR Core (`HL7/fhir`)** tickets, every resource you modified in step 8
-must also get an entry in its "Changes since 6.0.0-ballotN" note, so the change
-is visible on the published resource page. Add — or append to — the `stu-note`
-blockquote in `source/<resource>/<resource>-introduction.xml`:
+For **FHIR Core (`HL7/fhir`)** tickets, every resource modified in step 8
+must also describe the ticket's effect under the exact release-note heading
+confirmed in step 7. Add one concise, spec-author-voice `<li>` to the matching
+section in `source/<resource>/<resource>-introduction.xml`. If the section does
+not yet exist, create it immediately after the historical ballot-note block by
+following a current peer resource's markup.
 
-```xml
-<blockquote class="stu-note" style="background-color: lightblue">
-	<p><b>Changes since 6.0.0-ballotN:</b></p>
-	<ul>
-		<li><a href="https://jira.hl7.org/browse/FHIR-NNNNN">FHIR-NNNNN</a> - what changed</li>
-	</ul>
-</blockquote>
-```
+Do not edit the historical **Note to Balloters** to record post-ballot work.
+`fields["Change Impact"]` describes compatibility impact; it does not select
+the release-note cycle or heading. Keep the ticket entry unique on the page.
 
-If the note already exists for the current ballot, add a new `<li>` to its `<ul>`
-rather than a second blockquote. See **"Record every change in the resource's
-'Changes since ballot' note"** in `references/fhir-authoring.md` for exact
-placement, how to determine the ballot number N, and the append-vs-create rule.
-This does **not** apply to IGs or the Extensions Pack — skip it for those repos.
+See **"Record every change under a user-confirmed release-note label"** in
+`references/fhir-authoring.md` for the exact markup, placement, duplicate
+rules, and published-output QA requirements. This does **not** apply to IGs or
+the Extensions Pack.
 
 ### 9. Run the publisher
 
@@ -253,6 +265,20 @@ script and FHIR Core doesn't build that way. Likewise, don't run
 This step is slow — 5–30 min for FHIR core (Gradle build does a lot),
 typically faster for IGs. Stream output and do not start the next step
 until it exits. Capture the exit code.
+
+Immediately before the publisher starts, inspect and retain the current
+`git status --short` and `git diff` so its changes can be distinguished from
+the intentional edits. Immediately after it exits, inspect both again. Every
+**tracked file changed by the publisher must be staged with the intentional
+changes**, including an unexpected file or a source file for another resource.
+Review those diffs and explain any cross-resource or otherwise surprising
+publisher update in the synopsis and PR body. Never restore, discard, or omit
+a tracked publisher change merely to narrow the diff.
+
+The only routine exclusions are untracked generated artifacts and caches in
+the repository's configured `build_dirs`. If the publisher changes a tracked
+file under one of those directories, do not discard it: stage it, or stop and
+surface a documented repository-policy conflict before proceeding.
 
 For **FHIR Core**, tee the build to a log so step 10 can read the
 `Summary: Errors=N` line (there is no `qa.json`):
@@ -374,7 +400,7 @@ Read both output files and review them.
 ### 13. Commit, push, open PR
 
 ```bash
-git add <files>
+git add <intentional-files> <all-tracked-files-changed-by-publisher>
 git commit -F .jira-cache/FHIR-NNNN.commit.txt
 git push -u origin <branch>
 
@@ -390,12 +416,13 @@ Always open the PR as a **draft** (`--draft`). A human maintainer reviews
 and marks it ready / undrafts it after the WG/disposition check. Do not
 open non-draft PRs from this workflow.
 
-Use `git add` with explicit paths, never `-A`. The publisher generates
-many files under the repo's `build_dirs` (resolved in step 2) and those
-must not be in the commit. Sanity-check with `git status` before
-committing — anything under `output/`, `temp/`, `input-cache/`, `build/`,
-or `.gradle/` (depending on which `build_dirs` your repo uses) should
-not appear. If your local repo doesn't already have these in
+Use `git add` with explicit paths, never `-A`. The explicit list must include
+every tracked file changed by the publisher as well as the intentional files.
+Sanity-check with `git status` before committing: no tracked publisher change
+may remain unstaged or be silently restored. Untracked generated artifacts
+under `output/`, `temp/`, `input-cache/`, `build/`, or `.gradle/` (depending on
+the repo's configured `build_dirs`) should not be staged. If the local repo
+doesn't already ignore these generated artifacts in
 `.gitignore`, add them to `.git/info/exclude` (local-only) rather than
 the committed `.gitignore` to keep your PR focused.
 
@@ -476,21 +503,27 @@ flow — separate branch, separate commits, separate PR:
 1. `cd` into that repo's local path.
 2. Copy the relevant ticket JSONs from staging to `<repo>/.jira-cache/`.
 3. Create one branch for the group: `fhir-batch-<repo-shortname>-<date>`.
-4. Per ticket: read context → confirm if non-trivial → edit → commit
+4. Before editing, obtain the exact FHIR Core release-note label from the user
+   (once for the group when it applies to every affected resource). Per ticket:
+   read context → confirm if non-trivial → edit → commit
    immediately with that ticket's synopsis. **One commit per ticket**, not
-   squashed. For FHIR Core, include the resource's "Changes since ballot"
-   `stu-note` entry (step 8a) in that same commit.
+   squashed. For FHIR Core, include the resource's entry under the confirmed
+   release-note label (step 8a) in that same commit.
 5. Run the publisher **once** at the end of the group's edits if the
    tickets touch disjoint files. If they touch the same file, run between
    tickets so you can localize errors.
-6. Parse QA delta against this repo's baseline.
-7. Run the required published-output QA in step 10a separately for every
+6. After every publisher run, review and stage every tracked file it changed,
+   including unexpected or cross-resource source updates. Include these files
+   in the group PR; never restore or omit them to narrow the diff. Continue to
+   exclude untracked generated artifacts in `build_dirs`.
+7. Parse QA delta against this repo's baseline.
+8. Run the required published-output QA in step 10a separately for every
    ticket in the group. Inspect FHIR Core in `publish/` and IG output in
    `output/`; do not substitute one group-level spot check.
-8. Finalize `batch-synopses.json` from the per-ticket changes and verdicts.
-9. Format the aggregated PR body (`format_messages.py --batch ...`).
-10. Push and open the PR as a **draft** with `--repo <github_slug> --draft`.
-11. Watch CI.
+9. Finalize `batch-synopses.json` from the per-ticket changes and verdicts.
+10. Format the aggregated PR body (`format_messages.py --batch ...`).
+11. Push and open the PR as a **draft** with `--repo <github_slug> --draft`.
+12. Watch CI.
 
 ### B4. Final cross-repo summary
 
@@ -509,10 +542,11 @@ poll them.
 
 - Never run `git push --force` without explicit user approval.
 - Never `git add -A` or `git add .` — explicit paths only.
-- Never edit anything under the directories listed in `build_dirs` for
-  the repo (publisher outputs and Gradle/IG-Publisher caches). For the
-  IG Publisher these are `output/`, `temp/`, `input-cache/`. For FHIR Core's
-  Gradle build, also `build/` and `.gradle/`. Never edit `qa.json` directly.
+- Never stage untracked generated artifacts under the directories listed in
+  `build_dirs` for the repo. For the IG Publisher these are `output/`, `temp/`,
+  and `input-cache/`; for FHIR Core's Gradle build they also include `build/`
+  and `.gradle/`. This rule does not permit restoring or omitting a tracked file
+  changed by the publisher. Never edit `qa.json` directly.
 - Never invent a disposition. If resolution notes are empty or unclear, ask.
 - Never auto-clone a missing repo — ask first.
 - Never combine commits across tickets, even within one repo. One commit per ticket.

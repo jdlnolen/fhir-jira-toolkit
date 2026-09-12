@@ -25,6 +25,7 @@ which also works without auth for publicly-shared filters.
     "Related URL": "https://hl7.org/fhir/observation.html",
     "Related Artifact(s)": "Observation",
     "Resolution Description": "Authoritative disposition narrative",
+    "Change Impact": "Compatible, substantive",
     "Work Group": "Patient Care"
   },
   "fetched_at": "2026-05-12T16:00:00Z"
@@ -75,6 +76,18 @@ The `resolution` value tells you the disposition class:
 
 You should only implement **Persuasive** and **Persuasive with Modification**
 tickets. If the resolution is anything else, stop and confirm with the user.
+
+## Change Impact and release-note labels
+
+`fields["Change Impact"]` records whether the change is non-compatible,
+compatible substantive, or non-substantive. It may inform the synopsis and
+review discussion, but it does **not** identify the release-note cycle or page
+heading.
+
+Before changing a FHIR Core resource, ask the user to confirm the exact
+release-note heading or label, such as **Changes since 6.0.0-ballot5**. If the
+request already provides the exact label, use it without asking again. Do not
+place new work in a historical Note to Balloters based on Change Impact.
 
 ## Filter resolution
 

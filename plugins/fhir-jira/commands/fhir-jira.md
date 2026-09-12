@@ -17,8 +17,11 @@ Key flow:
 3. `cd` into that repo's local clone (ask the user if it doesn't exist;
    never auto-clone).
 4. Sync, branch, read context, edit.
-5. Run the repository's publisher and confirm validation errors did not
-   increase (FHIR Core uses its Gradle build log; IGs use `qa.json`).
+5. Run the repository's publisher, stage every tracked file it changes with
+   the intentional edits (including unexpected or cross-resource source
+   updates), and confirm validation errors did not increase. Exclude only
+   untracked generated build artifacts. FHIR Core uses its Gradle build log;
+   IGs use `qa.json`.
 6. Verify the requested result in the generated specification and record a
    ticket-specific published-output QA verdict.
 7. Generate the synopsis **after** the publisher and semantic QA pass (must reflect final

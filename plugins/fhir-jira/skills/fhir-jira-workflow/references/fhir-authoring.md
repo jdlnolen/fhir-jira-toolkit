@@ -335,61 +335,48 @@ type `canonical`. When working on such a ticket: update the StructureDefinition
 AND the search parameters. The `canonical` type maps to search type `token`,
 not `reference`.
 
-### Record every change in the resource's "Changes since ballot" note (FHIR Core)
+### Record every change under a user-confirmed release-note label (FHIR Core)
 
 Applies to **FHIR Core (`HL7/fhir`) only.** IGs and the Extensions Pack have
 their own change-log conventions; this pattern does not apply to them.
 
 Whenever a ticket modifies a FHIR Core resource — its StructureDefinition,
-search parameters, notes, examples, or narrative — you must also record that
-change in the resource's **"Changes since 6.0.0-ballotN"** note so it appears on
-the published resource page (e.g.
-`https://build.fhir.org/deviceassociation.html#11.3`). Do this for **every
-resource the ticket touches**, as part of the same edit — not as a follow-up.
+search parameters, notes, examples, or narrative — record the effect on the
+published resource page. Before implementation begins, ask the user to confirm
+the exact release-note heading or label. If the request already supplies it,
+use that answer without asking again. Do this for **every resource the ticket
+touches**, in the same ticket commit.
 
-**Location**: `source/<resource>/<resource>-introduction.xml`, near the top of
-the file — after any `<blockquote class="ballot-note">` and immediately before
-the `<a name="bnc"></a>` anchor / `<h2>Scope and Usage</h2>` heading.
+Do not infer the release-note cycle from the existing page, the current date,
+or `fields["Change Impact"]`. A heading such as **Changes since
+6.0.0-ballot5** identifies the publication window; Change Impact describes
+compatibility, not placement.
 
-**The note is a single `stu-note` blockquote with one `<li>` per ticket:**
+**Location and structure:** edit
+`source/<resource>/<resource>-introduction.xml`. Append to the section whose
+heading exactly matches the user's answer. If it does not exist, create it
+immediately after the historical `<blockquote class="ballot-note" id="bn1">`
+using the current peer-resource pattern:
 
 ```xml
 <blockquote class="stu-note" style="background-color: lightblue">
-	<p><b>Changes since 6.0.0-ballotN:</b></p>
-	<ul>
-		<li><a href="https://jira.hl7.org/browse/FHIR-NNNNN">FHIR-NNNNN</a> - short description of what changed</li>
-	</ul>
+  <p><b>Changes since 6.0.0-ballot5:</b></p>
+  <ul>
+    <li><a href="https://jira.hl7.org/browse/FHIR-NNNNN">FHIR-NNNNN</a> - Corrected the affected resource guidance</li>
+  </ul>
 </blockquote>
 ```
 
-**Append vs. create:**
+Write one concise `<li>` per ticket, starting with the linked ticket key and
+then the observable change. Reuse an existing matching section instead of
+creating a duplicate. Do not alter or append post-ballot work to the historical
+Note to Balloters.
 
-- If the resource's introduction already has a `Changes since 6.0.0-ballotN`
-  blockquote for the current ballot, **add a new `<li>`** to its existing `<ul>`.
-  Do not create a second blockquote.
-- If it has none, **create** the blockquote in the location described above.
-
-**Determining N (the ballot number):** N is the most recently *published*
-ballot, which is **not** necessarily the `version` in `publish.ini` (the
-in-development version is often one ahead). Match what the rest of the repo
-already uses:
-
-```bash
-grep -rho 'Changes since 6\.0\.0-ballot[0-9]*' source | sort -u
-```
-
-Use the value other resources use. If the grep returns nothing, or more than one
-value, **ask the user** which ballot number applies — do not guess.
-
-**Description text:** one concise phrase describing the substantive change, in
-spec-author voice — mirror the ticket's disposition rather than copying its
-title verbatim. Example: `Binding relationship-status, relationship, and
-status-reason valuesets to THO equivalent code systems`.
-
-**Do not touch the neighbouring `ballot-note` blockquote.** The categorised
-`<blockquote class="ballot-note">` (Non-compatible / Compatible substantive /
-Non-substantive lists) is maintained separately by WG editors. Only add your
-`stu-note` entry; leave the `ballot-note` structure alone.
+**Published-output QA:** after the publisher runs, verify on the generated
+resource page that the ticket appears exactly once under the user-confirmed
+heading, with the intended JIRA link, and that the historical ballot note did
+not absorb the new entry. Record these observations in that ticket's written
+QA verdict.
 
 ---
 

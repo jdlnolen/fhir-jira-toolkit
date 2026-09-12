@@ -92,3 +92,64 @@ def test_published_output_qa_is_required_for_single_and_batch_flows() -> None:
     assert "do not substitute one group-level spot check" in workflow
     assert "published-output QA verdict" in single
     assert "one published-output QA verdict per" in batch
+
+
+def test_fhir_core_changes_require_user_confirmed_release_note_labels() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    batch = (PLUGIN / "skills" / "fhir-jira-batch" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    authoring = (
+        PLUGIN
+        / "skills"
+        / "fhir-jira-workflow"
+        / "references"
+        / "fhir-authoring.md"
+    ).read_text(encoding="utf-8")
+    jira_fields = (
+        PLUGIN
+        / "skills"
+        / "fhir-jira-workflow"
+        / "references"
+        / "jira-fields.md"
+    ).read_text(encoding="utf-8")
+
+    for text in (workflow, batch, authoring, jira_fields):
+        assert "release-note heading or label" in text
+        assert "Change Impact" in text
+
+    for text in (workflow, authoring, jira_fields):
+        assert "Changes since 6.0.0-ballot5" in text
+        assert "without asking again" in text
+
+    assert "This confirmation is" in workflow
+    assert "required before step 8" in workflow
+    assert "Do not infer the release-note cycle" in authoring
+    assert "appears exactly once" in authoring
+    assert "historical ballot note did" in authoring
+    assert "not absorb the new entry" in authoring
+
+
+def test_tracked_publisher_changes_must_be_staged_in_all_flows() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    entrypoints = [
+        PLUGIN / "skills" / "fhir-jira" / "SKILL.md",
+        PLUGIN / "skills" / "fhir-jira-batch" / "SKILL.md",
+        PLUGIN / "commands" / "fhir-jira.md",
+        PLUGIN / "commands" / "fhir-jira-batch.md",
+    ]
+
+    for path in entrypoints:
+        text = " ".join(path.read_text(encoding="utf-8").split())
+        assert "every tracked file" in text
+        assert "publisher" in text
+        assert "stage" in text
+        assert "untracked generated" in text
+
+    assert "Never restore, discard, or omit" in workflow
+    assert "no tracked publisher change" in workflow
+    assert "This rule does not permit restoring or omitting" in workflow
