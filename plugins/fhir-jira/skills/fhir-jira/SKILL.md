@@ -20,7 +20,10 @@ Key flow:
 2. Resolve its target repository, default branch, and publisher command.
 3. Enter the user's local clone, asking if it does not exist.
 4. Sync, branch, read context, and edit.
-5. Run the correct publisher and confirm the QA result did not regress.
+5. Run the correct publisher. Review and stage every tracked file it changes
+   with the intentional edits, even when the file is unexpected or belongs to
+   another resource; exclude only untracked generated build artifacts. Then
+   confirm the QA result did not regress.
 6. Verify the requested result in the generated specification and record a
    ticket-specific published-output QA verdict.
 7. Generate the synopsis only after the final publisher and semantic QA pass.

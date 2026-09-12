@@ -125,8 +125,12 @@ See `INSTALL.md` for the full step-by-step including prerequisites
    The agent then makes the edit and records the ticket in that current-change
    section without altering a historical Note to Balloters. Non-trivial edits
    also pause for user approval.
-5. The repository's publisher runs locally; `parse_qa.py` confirms errors did
-   not increase (FHIR Core uses its Gradle log; IGs use `qa.json`).
+5. The repository's publisher runs locally. After it exits, every tracked file
+   changed by the publisher is reviewed and staged with the intentional edits,
+   including unexpected or cross-resource source updates. Untracked generated
+   artifacts in configured build directories remain excluded. `parse_qa.py`
+   then confirms errors did not increase (FHIR Core uses its Gradle log; IGs
+   use `qa.json`).
 6. The agent verifies each ticket in the generated specification and records a
    published-output QA verdict.
 7. The agent writes the synopsis only after both gates pass.

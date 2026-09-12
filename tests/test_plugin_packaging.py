@@ -130,3 +130,26 @@ def test_fhir_core_changes_require_user_confirmed_release_note_labels() -> None:
     assert "appears exactly once" in authoring
     assert "historical ballot note did" in authoring
     assert "not absorb the new entry" in authoring
+
+
+def test_tracked_publisher_changes_must_be_staged_in_all_flows() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    entrypoints = [
+        PLUGIN / "skills" / "fhir-jira" / "SKILL.md",
+        PLUGIN / "skills" / "fhir-jira-batch" / "SKILL.md",
+        PLUGIN / "commands" / "fhir-jira.md",
+        PLUGIN / "commands" / "fhir-jira-batch.md",
+    ]
+
+    for path in entrypoints:
+        text = " ".join(path.read_text(encoding="utf-8").split())
+        assert "every tracked file" in text
+        assert "publisher" in text
+        assert "stage" in text
+        assert "untracked generated" in text
+
+    assert "Never restore, discard, or omit" in workflow
+    assert "no tracked publisher change" in workflow
+    assert "This rule does not permit restoring or omitting" in workflow

@@ -124,8 +124,10 @@ Read the output. You now have:
   `./_updatePublisher.sh && ./_genonce.sh` for the Extensions Pack and IGs (IG Publisher)
 - `qa_path` — where the publisher writes its QA report (usually
   `output/qa.json`; may differ for Gradle builds)
-- `build_dirs` — directories the publisher writes into and that must
-  never be staged for commit (e.g., `output/`, `temp/`, `build/`, `.gradle/`)
+- `build_dirs` — directories that normally contain untracked publisher output
+  and caches (e.g., `output/`, `temp/`, `build/`, `.gradle/`). Do not stage
+  untracked generated artifacts from them. This exclusion never authorizes
+  discarding a tracked file changed by the publisher.
 - `github` — the `org/repo` for `gh pr create`
 
 If `local_exists` is `false`, stop and ask the user.
@@ -264,6 +266,20 @@ This step is slow — 5–30 min for FHIR core (Gradle build does a lot),
 typically faster for IGs. Stream output and do not start the next step
 until it exits. Capture the exit code.
 
+Immediately before the publisher starts, inspect and retain the current
+`git status --short` and `git diff` so its changes can be distinguished from
+the intentional edits. Immediately after it exits, inspect both again. Every
+**tracked file changed by the publisher must be staged with the intentional
+changes**, including an unexpected file or a source file for another resource.
+Review those diffs and explain any cross-resource or otherwise surprising
+publisher update in the synopsis and PR body. Never restore, discard, or omit
+a tracked publisher change merely to narrow the diff.
+
+The only routine exclusions are untracked generated artifacts and caches in
+the repository's configured `build_dirs`. If the publisher changes a tracked
+file under one of those directories, do not discard it: stage it, or stop and
+surface a documented repository-policy conflict before proceeding.
+
 For **FHIR Core**, tee the build to a log so step 10 can read the
 `Summary: Errors=N` line (there is no `qa.json`):
 `./gradlew publish | tee .jira-cache/build.log`. The generated site is
@@ -384,7 +400,7 @@ Read both output files and review them.
 ### 13. Commit, push, open PR
 
 ```bash
-git add <files>
+git add <intentional-files> <all-tracked-files-changed-by-publisher>
 git commit -F .jira-cache/FHIR-NNNN.commit.txt
 git push -u origin <branch>
 
@@ -400,12 +416,13 @@ Always open the PR as a **draft** (`--draft`). A human maintainer reviews
 and marks it ready / undrafts it after the WG/disposition check. Do not
 open non-draft PRs from this workflow.
 
-Use `git add` with explicit paths, never `-A`. The publisher generates
-many files under the repo's `build_dirs` (resolved in step 2) and those
-must not be in the commit. Sanity-check with `git status` before
-committing — anything under `output/`, `temp/`, `input-cache/`, `build/`,
-or `.gradle/` (depending on which `build_dirs` your repo uses) should
-not appear. If your local repo doesn't already have these in
+Use `git add` with explicit paths, never `-A`. The explicit list must include
+every tracked file changed by the publisher as well as the intentional files.
+Sanity-check with `git status` before committing: no tracked publisher change
+may remain unstaged or be silently restored. Untracked generated artifacts
+under `output/`, `temp/`, `input-cache/`, `build/`, or `.gradle/` (depending on
+the repo's configured `build_dirs`) should not be staged. If the local repo
+doesn't already ignore these generated artifacts in
 `.gitignore`, add them to `.git/info/exclude` (local-only) rather than
 the committed `.gitignore` to keep your PR focused.
 
@@ -495,14 +512,18 @@ flow — separate branch, separate commits, separate PR:
 5. Run the publisher **once** at the end of the group's edits if the
    tickets touch disjoint files. If they touch the same file, run between
    tickets so you can localize errors.
-6. Parse QA delta against this repo's baseline.
-7. Run the required published-output QA in step 10a separately for every
+6. After every publisher run, review and stage every tracked file it changed,
+   including unexpected or cross-resource source updates. Include these files
+   in the group PR; never restore or omit them to narrow the diff. Continue to
+   exclude untracked generated artifacts in `build_dirs`.
+7. Parse QA delta against this repo's baseline.
+8. Run the required published-output QA in step 10a separately for every
    ticket in the group. Inspect FHIR Core in `publish/` and IG output in
    `output/`; do not substitute one group-level spot check.
-8. Finalize `batch-synopses.json` from the per-ticket changes and verdicts.
-9. Format the aggregated PR body (`format_messages.py --batch ...`).
-10. Push and open the PR as a **draft** with `--repo <github_slug> --draft`.
-11. Watch CI.
+9. Finalize `batch-synopses.json` from the per-ticket changes and verdicts.
+10. Format the aggregated PR body (`format_messages.py --batch ...`).
+11. Push and open the PR as a **draft** with `--repo <github_slug> --draft`.
+12. Watch CI.
 
 ### B4. Final cross-repo summary
 
@@ -521,10 +542,11 @@ poll them.
 
 - Never run `git push --force` without explicit user approval.
 - Never `git add -A` or `git add .` — explicit paths only.
-- Never edit anything under the directories listed in `build_dirs` for
-  the repo (publisher outputs and Gradle/IG-Publisher caches). For the
-  IG Publisher these are `output/`, `temp/`, `input-cache/`. For FHIR Core's
-  Gradle build, also `build/` and `.gradle/`. Never edit `qa.json` directly.
+- Never stage untracked generated artifacts under the directories listed in
+  `build_dirs` for the repo. For the IG Publisher these are `output/`, `temp/`,
+  and `input-cache/`; for FHIR Core's Gradle build they also include `build/`
+  and `.gradle/`. This rule does not permit restoring or omitting a tracked file
+  changed by the publisher. Never edit `qa.json` directly.
 - Never invent a disposition. If resolution notes are empty or unclear, ask.
 - Never auto-clone a missing repo — ask first.
 - Never combine commits across tickets, even within one repo. One commit per ticket.

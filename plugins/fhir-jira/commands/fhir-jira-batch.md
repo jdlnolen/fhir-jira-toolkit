@@ -18,6 +18,10 @@ Key invariants:
 - **One commit per ticket** within a repo's PR. Reviewers cherry-pick.
 - Run the IG Publisher once per group (after all that group's edits) when
   the tickets touch disjoint files; run between tickets when they overlap.
+- After every publisher run, stage every tracked file it changes with the
+  intentional edits, including unexpected or cross-resource source updates.
+  Never restore or omit one to narrow the diff; exclude only untracked
+  generated artifacts in configured build directories.
 - After a clean publisher result, verify every ticket separately in the
   generated specification and record one published-output QA verdict per
   ticket. Do not replace this with a group-level spot check.
