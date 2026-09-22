@@ -206,6 +206,41 @@ guidance, usage patterns, and implementation notes.
 </div>
 ```
 
+### Core FHIR: Example lists
+
+**File pattern**: `source/{resource-name}/list-{Resource}-examples.xml`
+
+Example-list metadata has a counterintuitive split between source lookup and
+human-facing text:
+
+- The `http://hl7.org/fhir/build/StructureDefinition/title` extension on
+  `List.entry.item` is the source XML **file basename**, despite being named
+  `title`. Keep it equal to the referenced example filename without `.xml`.
+- The `http://hl7.org/fhir/StructureDefinition/description` extension and
+  `item.reference.display` carry the human-readable example name shown to
+  readers.
+
+```xml
+<entry>
+  <item>
+    <extension url="http://hl7.org/fhir/build/StructureDefinition/title">
+      <valueString value="observation-example-compound-numeric-blood-pressure"/>
+    </extension>
+    <extension url="http://hl7.org/fhir/StructureDefinition/description">
+      <valueMarkdown value="Compound numeric blood pressure measurement"/>
+    </extension>
+    <reference value="Observation/compound-numeric-blood-pressure"/>
+    <display value="Compound numeric blood pressure measurement"/>
+  </item>
+</entry>
+```
+
+Do not replace the build `title` value with prose. Kindling uses that value to
+locate `<value>.xml`; a human-readable replacement makes the publisher search
+for a nonexistent source file. When review feedback asks for a human-readable
+example title, update `description` and `display`, retain the filename key,
+then verify both the full publisher run and the rendered example listing.
+
 ### Core FHIR: Code Systems (spreadsheet format)
 
 Shared code systems are defined in spreadsheet XML files. The most commonly
@@ -438,6 +473,25 @@ FHIR Core for this reason — do not look for `output/qa.json`.
 For IGs and the Extensions Pack, review `output/qa.html` for new validation
 errors before committing; `parse_qa.py --current output/qa.json` reads the
 machine-readable form.
+
+### FHIR Core dependency and packaging failures
+
+Classify failures by phase instead of treating every nonzero Gradle exit as a
+ticket-content regression:
+
+- A snapshot dependency-resolution failure before the Java Publisher starts
+  is a build-toolchain or branch drift failure. Compare the branch's
+  `build.gradle.kts` and `gradle.properties` with the current upstream default
+  branch and confirm that the referenced artifacts exist. Do not commit an
+  unrelated build-configuration change as part of the ticket fix.
+- If a temporary local build-configuration alignment is needed only to run
+  validation, record its exact diff, keep it uncommitted, and restore those
+  exact pre-publisher bytes after the run. This exception applies only to the
+  deliberate local configuration experiment; every tracked file changed by
+  the Publisher itself still must be preserved and staged.
+- A run that reports `Summary: Errors=0` and then fails during packaging,
+  archive creation, or upload has a clean validation phase but failed overall.
+  Report both facts, retain the failed-step log, and do not call CI green.
 
 ### Validation after FSH edits (IGs)
 
