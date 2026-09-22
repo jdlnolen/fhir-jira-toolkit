@@ -12,8 +12,15 @@ GitHub repo. The skill groups tickets by target repo using
 `scripts/resolve_repo.py --group ...` and then runs an independent
 sub-batch flow per repo.
 
+The first action must be the shared workflow's required version currency
+preflight. Do not fetch the filter or any ticket until the running plugin is
+confirmed current, or the user explicitly accepts an unverified version after
+a lookup failure.
+
 Key invariants:
 
+- Verify that the running plugin is the latest released version before any
+  ticket work.
 - **One PR per repository touched.** Never combine PRs across repos.
 - **One commit per ticket** within a repo's PR. Reviewers cherry-pick.
 - Run the IG Publisher once per group (after all that group's edits) when

@@ -83,7 +83,6 @@ def test_published_output_qa_is_required_for_single_and_batch_flows() -> None:
     batch = (PLUGIN / "skills" / "fhir-jira-batch" / "SKILL.md").read_text(
         encoding="utf-8"
     )
-
     assert (
         "Verify the published output satisfies each ticket (required)" in workflow
     )
@@ -193,3 +192,31 @@ def test_core_build_failures_are_classified_by_phase() -> None:
         assert "build-toolchain or branch drift" in text
         assert "uncommitted" in text
         assert "Publisher itself" in text
+
+
+def test_version_preflight_runs_before_ticket_fetch_in_all_flows() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    single = (PLUGIN / "skills" / "fhir-jira" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    batch = (PLUGIN / "skills" / "fhir-jira-batch" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    commands = [
+        (PLUGIN / "commands" / "fhir-jira.md").read_text(encoding="utf-8"),
+        (PLUGIN / "commands" / "fhir-jira-batch.md").read_text(
+            encoding="utf-8"
+        ),
+    ]
+
+    assert "Version currency preflight (required)" in workflow
+    assert workflow.index("check_version.py") < workflow.index("Fetch the ticket")
+    assert "failed lookup" in workflow
+    assert "do not silently update" in workflow
+    for entrypoint in (single, batch, *commands):
+        normalized = " ".join(entrypoint.split())
+        assert "first action" in normalized
+        assert "version currency preflight" in normalized
+        assert "explicitly accepts an unverified version" in normalized

@@ -1,6 +1,6 @@
 {
   "name": "fhir-jira",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "End-to-end workflow for resolving HL7 FHIR JIRA tickets across FHIR Core, the Extensions Pack, and Implementation Guides.",
   "author": {
     "name": "JD"
