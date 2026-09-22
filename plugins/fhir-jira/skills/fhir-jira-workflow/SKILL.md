@@ -262,6 +262,16 @@ Do not invoke `_genonce.sh` against FHIR Core; that's an IG-Publisher
 script and FHIR Core doesn't build that way. Likewise, don't run
 `./gradlew publish` against an IG.
 
+If Gradle fails while resolving snapshot dependencies before the Java
+Publisher starts, classify it as build-toolchain or branch drift rather than
+ticket validation. Compare the branch's `build.gradle.kts` and
+`gradle.properties` with the current upstream default branch and verify the
+referenced artifacts. Do not fold an unrelated build-configuration fix into
+the ticket PR. If a temporary local configuration alignment is necessary to
+run validation, record the exact diff, keep it uncommitted, and restore the
+exact pre-publisher bytes after the run. This narrow exception never permits
+restoring or omitting any tracked file changed by the Publisher itself.
+
 This step is slow — 5–30 min for FHIR core (Gradle build does a lot),
 typically faster for IGs. Stream output and do not start the next step
 until it exits. Capture the exit code.
@@ -327,6 +337,11 @@ synopsis that no numeric delta was computed.
 If errors increased: stop, surface the new errors, fix them, re-run the
 publisher. Do not proceed to commit until error count is `<=` baseline.
 
+Also retain the process exit code and terminal failure phase. A FHIR Core run
+that reaches `Summary: Errors=0` but exits nonzero later during packaging,
+archive creation, or upload has a clean validation phase but is still a failed
+build. Report both facts; do not describe the build or CI as green.
+
 ### 10a. Verify the published output satisfies each ticket (required)
 
 After publisher validation succeeds, perform a separate semantic QA check for
@@ -358,6 +373,9 @@ For each ticket:
    - it appears on the correct page and in appropriate surrounding context;
    - replaced or prohibited content is absent when the ticket requires removal;
    - links and FHIR references resolve to the intended target;
+   - for a changed `list-*-examples.xml`, the build `title` extension still
+     matches the source XML filename basename while `description` and
+     `item.reference.display` contain the human-readable example name;
    - nearby generated content has no obvious regression or contradiction.
 5. Write `.jira-cache/published-qa/<ticket-key>.md` with the ticket key,
    inspected artifact paths, expected result, observed result, and `PASS` or
@@ -438,7 +456,13 @@ gh pr checks "$PR_NUMBER" --watch
 ```
 
 If CI fails: `gh run view --log-failed`, summarize for the user, ask
-whether to attempt a fix or hand back. Never silently push fixes.
+whether to attempt a fix or hand back. For an external check provider, open
+its failed-step log or use its public API when available. Identify whether the
+failure occurred during checkout, dependency resolution, Publisher
+validation, generation, packaging, or upload. If validation reached
+`Errors=0` before a later packaging failure, report that content validation
+was clean while CI still failed overall. Never silently retry, push a fix, or
+mix an unrelated CI/toolchain repair into the ticket PR.
 
 ### 15. Recommend compounding any new learnings
 

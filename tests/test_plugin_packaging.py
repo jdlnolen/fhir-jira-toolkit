@@ -153,3 +153,43 @@ def test_tracked_publisher_changes_must_be_staged_in_all_flows() -> None:
     assert "Never restore, discard, or omit" in workflow
     assert "no tracked publisher change" in workflow
     assert "This rule does not permit restoring or omitting" in workflow
+
+
+def test_core_example_list_title_remains_a_source_filename_key() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    authoring = (
+        PLUGIN
+        / "skills"
+        / "fhir-jira-workflow"
+        / "references"
+        / "fhir-authoring.md"
+    ).read_text(encoding="utf-8")
+
+    assert "build `title` extension still" in workflow
+    assert "source XML filename basename" in workflow
+    assert "source XML **file basename**" in authoring
+    assert "Do not replace the build `title` value with prose" in authoring
+    assert "`description` and `display`" in authoring
+
+
+def test_core_build_failures_are_classified_by_phase() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    authoring = (
+        PLUGIN
+        / "skills"
+        / "fhir-jira-workflow"
+        / "references"
+        / "fhir-authoring.md"
+    ).read_text(encoding="utf-8")
+
+    for text in (workflow, authoring):
+        assert "Summary: Errors=0" in text
+        assert "clean validation phase" in text
+        assert "failed overall" in text
+        assert "build-toolchain or branch drift" in text
+        assert "uncommitted" in text
+        assert "Publisher itself" in text
