@@ -46,6 +46,38 @@ is available, use the absolute path to the installed `plugins/fhir-jira`
 directory as `FHIR_JIRA_PLUGIN_ROOT`. Do not assume the current working
 directory is the plugin directory.
 
+## Version currency preflight (required)
+
+Run this once at the start of every single-ticket or batch invocation,
+including a resumed invocation, before fetching JIRA, inspecting a target
+repository, or making any changes:
+
+```bash
+FHIR_JIRA_PLUGIN_ROOT="${FHIR_JIRA_PLUGIN_ROOT:-${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}}"
+python3 "${FHIR_JIRA_PLUGIN_ROOT}/skills/fhir-jira-workflow/scripts/check_version.py"
+```
+
+The checker compares the running package's Codex and Claude manifest versions
+with `VERSION` on `jdlnolen/fhir-jira-toolkit@main`, which is the authoritative
+latest released version for this plugin. A local Codex cachebuster suffix does
+not make an otherwise matching release line stale.
+
+- Exit `0`: record the current-version result and continue.
+- Exit `10`: the running release line does not match the latest release. Stop,
+  report both versions, and offer the host-appropriate update command:
+  `codex plugin add fhir-jira@fhir-jira-toolkit` or
+  `claude plugin update fhir-jira@fhir-jira-toolkit --scope user --yes`.
+  Start a new Codex task or restart Claude Code before resuming.
+- Exit `11`: the latest version could not be verified. Stop and tell the user
+  why; proceed only if the user explicitly accepts running with an unverified
+  plugin version.
+- Exit `12`: the installed host manifests are missing, invalid, or disagree.
+  Stop and reinstall the plugin before doing ticket work.
+
+Do not treat a failed lookup as proof that the running version is current, and
+do not silently update the plugin. The check is read-only; updating remains a
+separate user-authorized action.
+
 ## Repository resolution
 
 Every ticket targets exactly one of:

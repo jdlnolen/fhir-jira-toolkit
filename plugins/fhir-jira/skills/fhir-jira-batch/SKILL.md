@@ -10,6 +10,11 @@ Resolve the ticket batch supplied by the user by following the
 filter ID or ticket-list arguments are provided here: `$ARGUMENTS`. In Codex,
 use the filter ID or ticket list from the user's request.
 
+The first action must be the shared workflow's required version currency
+preflight. Do not fetch the filter or any ticket until the running plugin is
+confirmed current, or the user explicitly accepts an unverified version after
+a lookup failure.
+
 The batch may include tickets for FHIR Core, the FHIR Extensions Pack, and
 multiple Implementation Guides. Group tickets by target repository with
 `scripts/resolve_repo.py --group ...`, then run an independent sub-batch for
