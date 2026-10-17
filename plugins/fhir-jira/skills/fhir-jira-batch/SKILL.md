@@ -35,7 +35,9 @@ Keep these invariants:
   generated artifacts in configured build directories.
 - After a clean publisher result, verify each ticket separately in the
   generated specification and record one published-output QA verdict per
-  ticket. A group-level spot check is not sufficient.
+  ticket. For quoted replacement prose, proofread the complete passage in
+  source and generated output, including its final sentence. A group-level
+  spot check is not sufficient.
 - Stop and surface any unresolved tickets before proceeding.
 - Finish with a cross-repository summary of every PR opened.
 
