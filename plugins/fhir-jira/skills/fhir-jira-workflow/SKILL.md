@@ -277,6 +277,23 @@ See **"Record every change under a user-confirmed release-note label"** in
 rules, and published-output QA requirements. This does **not** apply to IGs or
 the Extensions Pack.
 
+### 8b. Proofread the complete disposition against the source (required)
+
+Before committing or running the publisher, compare each edited source block
+with the ticket's full `Resolution Description` and any user-approved wording.
+When a ticket supplies replacement prose, copy the complete target passage
+into the per-ticket expected-result checklist and check it **sentence by
+sentence**, including its opening, middle, and final sentences.
+Do not mark the ticket covered because the main new phrase is present while a
+trailing sentence still uses the old wording. Normalize only markup and
+whitespace; preserve the requested meaning, links, and scope.
+
+For each ticket, list every requested change in the expected-result checklist
+used in step 10a, and mark where it appears in the edited source. Confirm that
+superseded wording is gone where replacement was requested. If an intentional
+editorial variation changes or omits any part of the approved passage, record
+the proposed variation and ask the user to approve it before proceeding.
+
 ### 9. Run the publisher
 
 Use the publisher command from step 2. **Two different build systems
@@ -389,8 +406,9 @@ Use the correct generated-site root:
 
 For each ticket:
 
-1. Re-read the ticket's `Resolution Description` and relevant fields. Write a
-   short expected-result checklist before inspecting the generated output.
+1. Re-read the ticket's `Resolution Description` and relevant fields. Use the
+   complete expected-result checklist from step 8b; do not reduce a
+   multi-sentence replacement to a single keyword or its most visible clause.
 2. Map the ticket's `Related URL` to the generated page using
    `references/fhir-authoring.md`. If no URL is present, derive the page from
    the edited source, resource name, example id, or changed prose. If the
@@ -402,6 +420,8 @@ For each ticket:
    does not waive semantic QA.
 4. Confirm all of the following:
    - the exact requested text, code, value, reference, or behavior is present;
+   - every sentence or instruction in approved replacement prose appears in
+     the generated passage, read from start to finish in its page context;
    - it appears on the correct page and in appropriate surrounding context;
    - replaced or prohibited content is absent when the ticket requires removal;
    - links and FHIR references resolve to the intended target;
@@ -410,8 +430,9 @@ For each ticket:
      `item.reference.display` contain the human-readable example name;
    - nearby generated content has no obvious regression or contradiction.
 5. Write `.jira-cache/published-qa/<ticket-key>.md` with the ticket key,
-   inspected artifact paths, expected result, observed result, and `PASS` or
-   `FAIL`. Screenshots and accessibility snapshots may be added under the same
+   inspected artifact paths, each expected result and its observed source and
+   generated-output location, any approved variation, and `PASS` or `FAIL`.
+   Screenshots and accessibility snapshots may be added under the same
    directory as supporting evidence, but they do not replace the written
    verdict.
 
@@ -561,8 +582,9 @@ flow — separate branch, separate commits, separate PR:
 3. Create one branch for the group: `fhir-batch-<repo-shortname>-<date>`.
 4. Before editing, obtain the exact FHIR Core release-note label from the user
    (once for the group when it applies to every affected resource). Per ticket:
-   read context → confirm if non-trivial → edit → commit
-   immediately with that ticket's synopsis. **One commit per ticket**, not
+   read context → confirm if non-trivial → edit → proofread the complete
+   disposition (step 8b) → commit immediately with that ticket's synopsis.
+   **One commit per ticket**, not
    squashed. For FHIR Core, include the resource's entry under the confirmed
    release-note label (step 8a) in that same commit.
 5. Run the publisher **once** at the end of the group's edits if the
@@ -574,8 +596,9 @@ flow — separate branch, separate commits, separate PR:
    exclude untracked generated artifacts in `build_dirs`.
 7. Parse QA delta against this repo's baseline.
 8. Run the required published-output QA in step 10a separately for every
-   ticket in the group. Inspect FHIR Core in `publish/` and IG output in
-   `output/`; do not substitute one group-level spot check.
+   ticket in the group, using the complete-disposition checklist from step 8b.
+   Inspect FHIR Core in `publish/` and IG output in `output/`;
+   do not substitute one group-level spot check.
 9. Finalize `batch-synopses.json` from the per-ticket changes and verdicts.
 10. Format the aggregated PR body (`format_messages.py --batch ...`).
 11. Push and open the PR as a **draft** with `--repo <github_slug> --draft`.

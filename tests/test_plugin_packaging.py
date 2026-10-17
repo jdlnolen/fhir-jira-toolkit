@@ -93,6 +93,25 @@ def test_published_output_qa_is_required_for_single_and_batch_flows() -> None:
     assert "one published-output QA verdict per" in batch
 
 
+def test_complete_replacement_is_proofread_before_commit_and_in_output() -> None:
+    workflow = (
+        PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    batch = (PLUGIN / "skills" / "fhir-jira-batch" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    source_gate = workflow.index("### 8b. Proofread the complete disposition")
+    publisher = workflow.index("### 9. Run the publisher")
+    output_gate = workflow.index("### 10a. Verify the published output")
+    assert source_gate < publisher < output_gate
+    assert "opening, middle, and final sentences" in workflow
+    assert "every sentence or instruction" in workflow
+    assert "step 8b" in workflow[output_gate:]
+    assert "step 8b) → commit" in workflow
+    assert "including its final sentence" in batch
+
+
 def test_fhir_core_changes_require_user_confirmed_release_note_labels() -> None:
     workflow = (
         PLUGIN / "skills" / "fhir-jira-workflow" / "SKILL.md"
